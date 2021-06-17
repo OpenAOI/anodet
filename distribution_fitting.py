@@ -4,7 +4,7 @@ from tqdm import tqdm
 
 
 
-def getMeanCov(embedding_vectors):
+def getMeanCov(embedding_vectors, device):
     B, C, H, W = embedding_vectors.size()
     embedding_vectors = embedding_vectors.view(B, C, H * W)
     print('Calculating mean')
@@ -14,14 +14,19 @@ def getMeanCov(embedding_vectors):
 
     for i in tqdm(range(H*W), 'Calculating covariance'):
         # cov[:, :, i] = LedoitWolf().fit(embedding_vectors[:, :, i].numpy()).covariance_
-        cov[:, :, i] = np.cov(embedding_vectors[:, :, i].numpy(), rowvar=False) + 0.01 * I
+        cov[:, :, i] = np.cov(embedding_vectors[:, :, i].cpu().numpy(), rowvar=False) + 0.01 * I
         
-    print('Calculating inverse of covariance')
-    cov_inv = torch.from_numpy(cov_inv)
-    cov_inv = torch.inv(np.transpose(cov))
-    cov_inv = torch.transpose(cov_inv)
+#     print('Calculating inverse of covariance')
+    cov = torch.from_numpy(cov).to(device)
+    cov_inv = cov.permute(2,0,1)
+    cov_inv = torch.inverse(cov_inv)
+    cov_inv = cov_inv.permute(1,2,0)
     
-    return mean, cov_inv
+#     cov_inv = torch.inverse(cov_inv.permute(2,0,1))
+#     cov_inv = cov_inv.permute(1,2,0)
+    mean = mean.to(device)
+
+    return mean, cov, cov_inv
 
 
     
