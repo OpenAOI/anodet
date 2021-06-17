@@ -189,8 +189,8 @@ def extractEmbeddingVectors(dataloader, model, device):
             del train_outputs['layer1']
         del train_outputs[layer_name]
         
-    idx = getSeedIndices(100, 448, device)  
-    embedding_vectors = torch.index_select(embedding_vectors, 1, idx)
+#     idx = getSeedIndices(100, 448, device)  
+#     embedding_vectors = torch.index_select(embedding_vectors, 1, idx)
 
     return embedding_vectors
 
@@ -225,9 +225,7 @@ def extractEmbeddingVectorsBatched(x, model, device):
 
 
     # Embedding concat
-    embedding_vectors = train_outputs['layer1']
-    for layer_name in ['layer2', 'layer3']:
-        embedding_vectors = embedding_concat(embedding_vectors, train_outputs[layer_name])
+    embedding_vectors = expandFeatures([train_outputs['layer1'], train_outputs['layer2'], train_outputs['layer3']])
         
     idx = getSeedIndices(100, 448, device)  
     embedding_vectors = torch.index_select(embedding_vectors, 1, idx)
@@ -252,22 +250,49 @@ def getLowVarIndices(choose, total, features):
     pass
     
 
+    
+    
+# Three times as fast as old
+def expandFeatures(features):
+    
+    tot_depth = sum(feature.shape[1] for feature in features)
+    
+    concatenated_features = torch.zeros((features[0].shape[0], tot_depth, features[0].shape[2], features[0].shape[3]))
+    concatenated_features[:, 0:features[0].shape[1], :, :] = features[0]
+
+    last_depth = features[0].shape[0]
+    
+    for feature in features[1:]:
+        scale_factor = features[0].shape[3]/feature.shape[3]
+        upsampled_feature = torch.nn.Upsample(scale_factor=scale_factor, mode='nearest')(feature)
+        concatenated_features[:,last_depth:last_depth+upsampled_feature.shape[1], :, :] = upsampled_feature
+        last_depth += upsampled_feature.shape[1]
+
+    return concatenated_features
+    
+# # Expects the largest dimension first
+# def expandFeatures(features):
+#     expanded_features = features[0]
+#     for feature in features:
+#         expanded_features = embedding_concat(expanded_features, feature)
+#     return expanded_features
+    
 
 
-def embedding_concat(x, y):
-    B, C1, H1, W1 = x.size()
-    _, C2, H2, W2 = y.size()
-    s = int(H1 / H2)
-    x = F.unfold(x, kernel_size=s, dilation=1, stride=s)
-    x = x.view(B, C1, -1, H2, W2)
-    z = torch.zeros(B, C1 + C2, x.size(2), H2, W2)
-    for i in range(x.size(2)):
-        z[:, :, i, :, :] = torch.cat((x[:, :, i, :, :], y), 1)
-    del x
-    del y
-    z = z.view(B, -1, H2 * W2)
-    z = F.fold(z, kernel_size=s, output_size=(H1, W1), stride=s)
-    return z
+# def embedding_concat(x, y):
+#     B, C1, H1, W1 = x.size()
+#     _, C2, H2, W2 = y.size()
+#     s = int(H1 / H2)
+#     x = F.unfold(x, kernel_size=s, dilation=1, stride=s)
+#     x = x.view(B, C1, -1, H2, W2)
+#     z = torch.zeros(B, C1 + C2, x.size(2), H2, W2)
+#     for i in range(x.size(2)):
+#         z[:, :, i, :, :] = torch.cat((x[:, :, i, :, :], y), 1)
+#     del x
+#     del y
+#     z = z.view(B, -1, H2 * W2)
+#     z = F.fold(z, kernel_size=s, output_size=(H1, W1), stride=s)
+#     return z
 
 
 
