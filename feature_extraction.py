@@ -116,6 +116,7 @@ def embedding_concat(x, y, device):
 
 def extractEmbeddingVectors(model, x, device):
     with torch.no_grad():
+        x = x.to(device)
         layers = model(x)
     
     embedding_vectors = concatenateLayers(layers, device)
