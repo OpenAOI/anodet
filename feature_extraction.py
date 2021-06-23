@@ -114,20 +114,22 @@ def embedding_concat(x, y, device):
     
 
 
-def extractEmbeddingVectors(model, x, device):
+def extractEmbeddingVectors(model, x, device, indices=None):
     with torch.no_grad():
         x = x.to(device)
         layers = model(x)
     
     embedding_vectors = concatenateLayers(layers, device)
-#     B,D,H,W = embedding_vectors.shape
-#     embedding_vectors = embedding_vectors.reshape(B, D, H*W)
+    
+    if indices != None:
+        embedding_vectors = torch.index_select(embedding_vectors, 1, indices)
+    
     return embedding_vectors
     
     
     
     
-def extractEmbeddingVectorsDataloader(model, dataloader, device):
+def extractEmbeddingVectorsDataloader(model, dataloader, device, indices=None):
     
     embedding_vectors = None
         
@@ -142,14 +144,22 @@ def extractEmbeddingVectorsDataloader(model, dataloader, device):
         else:
             embedding_vectors = torch.cat((embedding_vectors, batch_embedding_vectors), 0)
             
-#     B,D,H,W = embedding_vectors.shape
-#     embedding_vectors = embedding_vectors.reshape(B, D, H*W)
+    if indices != None:
+        embedding_vectors = torch.index_select(embedding_vectors, 1, indices)
 
     return embedding_vectors
 
 
 
 
+
+
+def getOriginalResnet18Indicies(device):
+    return getIndices(100, 448, device)  
+
+
+# def getOriginalWideResnet50Indicies(device):
+#     return getIndices(100, 448, device)  
 
 
 def getIndices(choose, total, device):

@@ -8,7 +8,27 @@ from tqdm import tqdm
 
 
 
-def calculateScoreMaps(mean, cov_inv, embedding_vectors, device, do_gaussian_filter=True):
+def calculateImageScore(patch_scores):
+    image_scores = patch_scores.reshape(patch_scores.shape[0], -1).max(axis=1).values
+    return image_scores
+
+
+def calculateImageClassification(image_scores, thresh):
+    image_classifications = image_scores.clone()
+    image_classifications[image_classifications < thresh] = 1
+    image_classifications[image_classifications >= thresh] = 0  
+    return image_classifications
+
+
+def calculatePatchClassification(patch_scores, thresh):
+    patch_classifications = patch_scores.clone()
+    patch_classifications[patch_classifications < thresh] = 1
+    patch_classifications[patch_classifications >= thresh] = 0
+    return patch_classifications
+    
+
+
+def calculatePatchScore(mean, cov_inv, embedding_vectors, device, do_gaussian_filter=True):
 
     # Reshape and switch axes to conform to mahalonobis function
     mean = mean.permute(1,0)
@@ -21,20 +41,19 @@ def calculateScoreMaps(mean, cov_inv, embedding_vectors, device, do_gaussian_fil
     mahalanobis_distances = mahalanobis(mean, cov_inv, embedding_vectors)
     
     # Reshape output
-    score_maps = mahalanobis_distances.reshape(d, w, h)
+    patch_scores = mahalanobis_distances.reshape(d, w, h)
     if d == 1:
-        score_maps = score_maps.squeeze(0)
+        patch_scores = patch_scores.squeeze(0)
         
     #TODO: pytorch implementation of gaussian filter
     # Apply gaussian filter
     if do_gaussian_filter:
-        score_maps = score_maps.cpu().numpy()
-        for i in range(score_maps.shape[0]):
-            score_maps[i] = gaussian_filter(score_maps[i], sigma=4)
-        score_maps = torch.from_numpy(score_maps).to(device)
+        patch_scores = patch_scores.cpu().numpy()
+        for i in range(patch_scores.shape[0]):
+            patch_scores[i] = gaussian_filter(patch_scores[i], sigma=4)
+        patch_scores = torch.from_numpy(patch_scores).to(device)
 
-    return score_maps
-    
+    return patch_scores
     
     
     
@@ -99,95 +118,13 @@ def mahalanobis(mean, cov_inv, x):
     mult1 = torch.bmm(diff.unsqueeze(1), cov_inv)
     mult2 = torch.bmm(mult1, diff.unsqueeze(2))
     sqrt = torch.sqrt(mult2)
-    mahalonobis_distance = sqrt.reshape(N)
+    mahalanobis_distance = sqrt.reshape(N)
     
     # If a set of sets of distances is to be computed, reshape output
     if N > n:
-        mahalonobis_distance = mahalonobis_distance.reshape(ratio, n)
+        mahalanobis_distance = mahalanobis_distance.reshape(ratio, n)
     
-    return mahalonobis_distance
+    return mahalanobis_distance
 
 
 
-
-
-
-
-# def calculateScoreMaps(mean_, cov_inv_, embedding_vectors, do_gaussian_filter=True):
-#     mean_ = mean_.cpu().numpy()
-#     cov_inv_ = cov_inv_.cpu().numpy()
-    
-#     B, C, H, W = embedding_vectors.size()
-#     embedding_vectors = embedding_vectors.view(B, C, H * W).cpu().numpy()
-#     dist_list = []
-#     for i in range(H * W):
-#         mean = mean_[:, i]
-#         conv_inv = cov_inv_[:, :, i]
-#         dist = [mahalanobis(sample[:, i], mean, conv_inv) for sample in embedding_vectors]
-#         dist_list.append(dist)
-
-#     dist_list = np.array(dist_list).transpose(1, 0).reshape(B, H, W)
-
-#     # upsample
-#     dist_list = torch.tensor(dist_list)
-# #     print(embedding_vectors.shape)
-#     score_map = F.interpolate(dist_list.unsqueeze(1), size=H, mode='bilinear', align_corners=False).squeeze().numpy()#TODO: Check size
-
-#     # apply gaussian smoothing on the score map
-#     if do_gaussian_filter:
-#         for i in range(score_map.shape[0]):
-#             score_map[i] = gaussian_filter(score_map[i], sigma=4)
-
-        
-#     score_map = torch.from_numpy(score_map)
-#     return score_map
-
-
-
-
-    
-
-    
-#TODO: Does not work on one single image
-def calculateImageScores(score_maps, thresh):
-    image_max_values = score_maps.reshape(score_maps.shape[0], -1).max(axis=1)
-    img_scores = image_max_values.copy()
-    img_scores[np.where(img_scores < thresh)] = True
-    img_scores[np.where(img_scores >= thresh)] = False
-    img_scores = list(img_scores)
-    
-    for i in range(len(img_scores)):
-        img_scores[i] = int(img_scores[i])
-    
-    return image_max_values, img_scores
-    
-
-
-# def calculateScore(train_outputs, embedding_vectors):
-
-#     B, C, H, W = embedding_vectors.size()
-#     embedding_vectors = embedding_vectors.view(B, C, H * W).numpy()
-#     dist_list = []
-#     for i in tqdm(range(H*W), 'Calculating distances'):
-#         mean = train_outputs[0][:, i]
-#         conv_inv = np.linalg.inv(train_outputs[1][:, :, i])
-#         dist = [mahalanobis(sample[:, i], mean, conv_inv) for sample in embedding_vectors]
-#         dist_list.append(dist)
-
-#     dist_list = np.array(dist_list).transpose(1, 0).reshape(B, H, W)
-
-#     # upsample
-#     dist_list = torch.tensor(dist_list)
-# #     print(embedding_vectors.shape)
-#     score_map = F.interpolate(dist_list.unsqueeze(1), size=H, mode='bilinear',
-#                               align_corners=False).squeeze().numpy()#TODO: Check size
-
-#     # apply gaussian smoothing on the score map
-#     for i in range(score_map.shape[0]):
-#         score_map[i] = gaussian_filter(score_map[i], sigma=4)
-
-#     # Normalization
-# #     max_score = score_map.max()
-# #     min_score = score_map.min()
-# #     scores = (score_map - min_score) / (max_score - min_score)
-#     return score_map

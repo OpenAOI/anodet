@@ -23,7 +23,7 @@ class MVTecDataset(Dataset):
         self.dataset_path = dataset_path
         self.class_name = class_name
         self.is_train = is_train
-        self.resize = resize
+#         self.resize = resize
         self.cropsize = cropsize
         # self.mvtec_folder_path = os.path.join(root_path, 'mvtec_anomaly_detection')
 
@@ -34,14 +34,28 @@ class MVTecDataset(Dataset):
         self.x, self.y, self.mask = self.load_dataset_folder()
 
         # set transforms
-        self.transform_x = T.Compose([T.Resize(resize, Image.ANTIALIAS),
-                                      T.CenterCrop(cropsize),
-                                      T.ToTensor(),
-                                      T.Normalize(mean=[0.485, 0.456, 0.406],
-                                                  std=[0.229, 0.224, 0.225])])
-        self.transform_mask = T.Compose([T.Resize(resize, Image.NEAREST),
-                                         T.CenterCrop(cropsize),
-                                         T.ToTensor()])
+#         self.transform_x = T.Compose([T.Resize(resize, Image.ANTIALIAS),
+#                                       T.CenterCrop(cropsize),
+#                                       T.ToTensor(),
+#                                       T.Normalize(mean=[0.485, 0.456, 0.406],
+#                                                   std=[0.229, 0.224, 0.225])])
+        
+#         self.transform_mask = T.Compose([T.Resize(resize, Image.NEAREST),
+#                                          T.CenterCrop(cropsize),
+#                                          T.ToTensor()])
+
+        self.transform_x  = T.Compose([
+            T.Resize(cropsize),
+            T.CenterCrop(cropsize),
+            T.ToTensor(),
+            T.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])
+        ])
+        self.transform_mask  = T.Compose([
+            T.Resize(cropsize, T.InterpolationMode.NEAREST),
+            T.CenterCrop(cropsize),
+            T.ToTensor(),
+        ])
+
 
     def __getitem__(self, idx):
         x, y, mask = self.x[idx], self.y[idx], self.mask[idx]

@@ -16,7 +16,7 @@ def getMeanCov(embedding_vectors, device):
         # cov[:, :, i] = LedoitWolf().fit(embedding_vectors[:, :, i].numpy()).covariance_
         cov[:, :, i] = np.cov(embedding_vectors[:, :, i].cpu().numpy(), rowvar=False) + 0.01 * I
         
-#     print('Calculating inverse of covariance')
+    print('Calculating inverse of covariance')
     cov = torch.from_numpy(cov).to(device)
     cov_inv = cov.permute(2,0,1)
     cov_inv = torch.inverse(cov_inv)
