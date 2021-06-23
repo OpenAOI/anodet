@@ -2,16 +2,19 @@ import os
 import sys
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
+# sys.path.append(os.path.abspath(os.path.join(dir_path+'/src/')))
+
 module_path = os.path.abspath(os.path.join(dir_path+'/src/'))
 if module_path not in sys.path:
     sys.path.append(module_path)
     
 
 from padim_utils import toBatch
-from feature_extraction import Resnet18Features, WideResnet50Features, extractEmbeddingVectors, getOriginalResnet18Indicies
+from feature_extraction import Resnet18Features, WideResnet50Features, extractEmbeddingVectors, extractEmbeddingVectorsDataloader, getOriginalResnet18Indicies
 from score_calculation import calculatePatchScore, calculateImageScore, calculatePatchClassification, calculateImageClassification
 from visualization import getBoundaryImage, getBoundaryImageClassification, getBoundaryImageClassificationGroup
-
+from distribution_fitting import getMeanCov
+from datasets.mvtec import MVTecDataset
 
 
 def anomalyCalculation(batch, features_model, mean, cov_inv, device, indices=None):

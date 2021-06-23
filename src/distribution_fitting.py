@@ -26,7 +26,7 @@ def getMeanCov(embedding_vectors, device):
 #     cov_inv = cov_inv.permute(1,2,0)
     mean = mean.to(device)
 
-    return mean, cov, cov_inv
+    return mean, cov_inv
 
 
     
