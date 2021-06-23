@@ -42,8 +42,6 @@ def calculatePatchScore(mean, cov_inv, embedding_vectors, device, do_gaussian_fi
     
     # Reshape output
     patch_scores = mahalanobis_distances.reshape(d, w, h)
-    if d == 1:
-        patch_scores = patch_scores.squeeze(0)
         
     #TODO: pytorch implementation of gaussian filter
     # Apply gaussian filter
