@@ -134,18 +134,13 @@ def extractEmbeddingVectorsDataloader(model, dataloader, device, indices=None):
     embedding_vectors = None
         
     for (x, _, _) in tqdm(dataloader, 'Feature extraction'):
-        x = x.to(device)
-        with torch.no_grad():
-            layers = model(x)
         
-        batch_embedding_vectors = concatenateLayers(layers, device)
+        batch_embedding_vectors = extractEmbeddingVectors(model, x, device, indices=indices)
+        
         if embedding_vectors == None:
             embedding_vectors = batch_embedding_vectors
         else:
             embedding_vectors = torch.cat((embedding_vectors, batch_embedding_vectors), 0)
-            
-    if indices != None:
-        embedding_vectors = torch.index_select(embedding_vectors, 1, indices)
 
     return embedding_vectors
 
