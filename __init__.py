@@ -4,7 +4,7 @@ import sys
 dir_path = os.path.dirname(os.path.realpath(__file__))
 # sys.path.append(os.path.abspath(os.path.join(dir_path+'/src/')))
 
-module_path = os.path.abspath(os.path.join(dir_path+'/src/'))
+module_path = os.path.abspath(os.path.join(dir_path+'/image_anomaly_detection/'))
 if module_path not in sys.path:
     sys.path.append(module_path)
     

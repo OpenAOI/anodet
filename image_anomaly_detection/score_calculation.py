@@ -7,29 +7,75 @@ from tqdm import tqdm
 
 
 
-
-def calculateImageScore(patch_scores):
+def calculateImageScore(patch_scores: torch.tensor):
+    """Calculate image score
+    
+    Args:
+        patch_scores: A batch of patch scores
+        
+    Returns:
+        image_scores: A batch of image scores
+    
+    """
+    
+    # Calculate max value of each matrix
     image_scores = patch_scores.reshape(patch_scores.shape[0], -1).max(axis=1).values
     return image_scores
 
 
-def calculateImageClassification(image_scores, thresh):
+def calculateImageClassification(image_scores: torch.tensor, thresh: float) -> torch.tensor:
+    """Calculate image classification
+    
+    Args:
+        image_scores: A batch of iamge scores
+        thresh: A treshold value. If an image score is larger than or equal to thresh it is classified as anomalous
+        
+    Returns:
+        image_classifications: A batch of image classifcations
+        
+    """
+    
+    # Apply threshold
     image_classifications = image_scores.clone()
     image_classifications[image_classifications < thresh] = 1
     image_classifications[image_classifications >= thresh] = 0  
     return image_classifications
 
 
-def calculatePatchClassification(patch_scores, thresh):
+def calculatePatchClassification(patch_scores: torch.tensor, thresh: float) -> torch.tensor:
+    """Calculate patch classification
+    
+    Args:
+        patch_scores: A batch of patch scores
+        thresh: A treshold value. If a patch score is larger than or equal to thresh it is classified as anomalous
+        
+    Returns:
+        patch_classifications: A batch of patch classifications
+    
+    """
+    
+    # Apply threshold
     patch_classifications = patch_scores.clone()
     patch_classifications[patch_classifications < thresh] = 1
     patch_classifications[patch_classifications >= thresh] = 0
     return patch_classifications
+
+
+def calculatePatchScore(mean: torch.tensor, cov_inv: torch.tensor, embedding_vectors: torch.tensor, device: torch.device, do_gaussian_filter: bool=True) -> torch.tensor:
+    """Calculate the patch score for embedding vectors
     
-
-
-def calculatePatchScore(mean, cov_inv, embedding_vectors, device, do_gaussian_filter=True):
-
+    Args:
+        mean: A batch of mean vectors
+        cov_inv: A batch of inverted covariance matrices
+        embedding_vectors: A batch of embedding vectors
+        device: The device on which to run the function
+        do_gaussian_filter: If True apply gaussian filter, else do not
+        
+    Returns:
+        patch_scores: A batch of patch scores
+    
+    """
+    
     # Reshape and switch axes to conform to mahalonobis function
     mean = mean.permute(1,0)
     cov_inv = cov_inv.permute(2, 0, 1)
@@ -54,22 +100,20 @@ def calculatePatchScore(mean, cov_inv, embedding_vectors, device, do_gaussian_fi
     return patch_scores
     
     
+def mahalanobis(mean: torch.tensor, cov_inv: torch.tensor, x: torch.tensor) -> torch.tensor:  
+    """Calculate the mahalonobis distance
     
-    
-def mahalanobis(mean, cov_inv, x):  
-    """
-    Calculates the mahalanobis distance between a multivariate normal distribution 
+    Calculate the mahalanobis distance between a multivariate normal distribution 
     and a point or elementwise between a set of distributions and a set of points.
     
-    If a set of points is to be calculated the function expects the first dimension to be the number of points for mean, cov_inv and x.
-    
-    Parameters:
-        - mean: Mean vector. A pytorch vector or a set of vectors (matrix)
-        - cov_inv: Inverse of covariance matrix. A pytorch matrix or a set of matrices (3d tensor)
-        - x: Point. A pytorch vector or a set of vectors (matrix)
+    Args:
+        mean: A mean vector or a set of mean vectors
+        cov_inv: A inverse of covariance matrix or a set of covariance matricies
+        x: A point or a set of points
         
     Returns:
-        - mahalonobis_distance: a pytorch value or a set of values (vector) or a set of vectors (matrix)
+        mahalonobis_distance: A distance or a set of distances or a set of sets of distances
+        
     """
     
     # Assert that parameters has acceptable dimensions
@@ -123,6 +167,4 @@ def mahalanobis(mean, cov_inv, x):
         mahalanobis_distance = mahalanobis_distance.reshape(ratio, n)
     
     return mahalanobis_distance
-
-
 
