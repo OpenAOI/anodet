@@ -8,7 +8,7 @@ from skimage.segmentation import mark_boundaries
 
 
 
-def get_boundary_image_classification_group(images, patch_classifications,
+def boundary_image_classification_group(images, patch_classifications,
                                             image_classifications, size):
 
     padding = 30
@@ -17,17 +17,17 @@ def get_boundary_image_classification_group(images, patch_classifications,
                          +(len(images)-1)*margin, 3)).astype(np.uint8)*255
 
     for i, image in enumerate(images):
-        boundary_image = get_boundary_image_classification(image, patch_classifications[i],
+        b_image = boundary_image_classification(image, patch_classifications[i],
                                                            image_classifications[i],
                                                            size, padding=padding)
-        height = boundary_image.shape[0]
-        tot_image[:, i*(height+margin):(i+1)*(height)+i*margin, :] = boundary_image
+        height = b_image.shape[0]
+        tot_image[:, i*(height+margin):(i+1)*(height)+i*margin, :] = b_image
 
     return tot_image
 
 
 
-def get_boundary_image_classification(image, patch_classification,
+def boundary_image_classification(image, patch_classification,
                                       image_classification, size, padding=20):
 
     frame = (np.ones((size+2*padding, size+2*padding, 3))*255).astype(np.uint8)
@@ -39,13 +39,13 @@ def get_boundary_image_classification(image, patch_classification,
         frame[:, :, 1] = 0
         frame[:, :, 2] = 0
 
-    boundary_image = get_boundary_image(image, patch_classification, size)
-    frame[padding:frame.shape[0]-padding, padding:frame.shape[1]-padding] = boundary_image
+    b_image = boundary_image(image, patch_classification, size)
+    frame[padding:frame.shape[0]-padding, padding:frame.shape[1]-padding] = b_image
     return frame
 
 
 
-def get_boundary_image(image, patch_classification, size):
+def boundary_image(image, patch_classification, size):
 
     image = image.copy()
     image = cv2.resize(image, (size, size), interpolation=cv2.INTER_AREA)

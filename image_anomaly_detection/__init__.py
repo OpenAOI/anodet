@@ -10,9 +10,9 @@ extract_embedding_vectors, extract_embedding_vectors_dataloader, get_original_re
 from .score_calculation import patch_score, image_score, \
 patch_classification, image_classification
 
-from .visualization import get_boundary_image, get_boundary_image_classification, \
-get_boundary_image_classification_group
+from .visualization import boundary_image, boundary_image_classification, \
+boundary_image_classification_group
 
-from .distribution_fitting import get_distribution
+from .distribution_fitting import joint_normal_distribution
 
 from .datasets import MVTecDataset
