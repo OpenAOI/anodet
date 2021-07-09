@@ -20,9 +20,9 @@ For developers
 pip3 install --editable [PATH TO REPOSITORY]
 ```
 
-Pylint
+Before merge request run:
 ```
-pylint [PATH TO FILE]
+pytest --mypy --pylint
 ```
 
 
