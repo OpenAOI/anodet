@@ -56,15 +56,15 @@ class Resnet18Features(torch.nn.Module):
 
 
 
-def concatenate_layers(features, device):
-    expanded_features = features[0]
-    for feature in features[1:]:
-        expanded_features = embedding_concat(expanded_features, feature, device)
-    return expanded_features
+def concatenate_layers(layers, device):
+    expanded_layers = layers[0]
+    for layer in layers[1:]:
+        expanded_layers = concatenate_two_layers(expanded_layers, layer, device)
+    return expanded_layers
 
 
 
-def embedding_concat(layer1, layer2, device):
+def concatenate_two_layers(layer1, layer2, device):
     batch_length, channel_num1, height1, width1 = layer1.size()
     _, channel_num2, height2, width2 = layer2.size()
     height_ratio = int(height1 / height2)

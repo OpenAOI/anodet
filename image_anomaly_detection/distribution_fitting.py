@@ -8,8 +8,8 @@ from tqdm import tqdm
 
 
 
-def get_distribution(embedding_vectors: torch.Tensor,
-                     device: torch.device) -> (torch.Tensor, torch.Tensor):
+def joint_normal_distribution(embedding_vectors: torch.Tensor, device: torch.device,
+                              invert_cov: bool = True) -> (torch.Tensor, torch.Tensor):
     """Calculate multivariate normal distribution from embedding vectors
 
     Args:
@@ -32,8 +32,11 @@ def get_distribution(embedding_vectors: torch.Tensor,
         cov[:, :, i] = np.cov(embedding_vectors[:, :, i].cpu().numpy(), rowvar=False) \
         + 0.01 * identity_matrix
 
-    print('Calculating inverse of covariance')
     cov = torch.from_numpy(cov).to(device)
+    if not invert_cov:
+        return mean, cov
+
+    print('Calculating inverse of covariance')
     cov_inv = cov.permute(2, 0, 1)
     cov_inv = torch.inverse(cov_inv)
     cov_inv = cov_inv.permute(1, 2, 0)
