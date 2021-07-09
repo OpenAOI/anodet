@@ -19,3 +19,12 @@ For developers
 ```
 pip3 install --editable [PATH TO REPOSITORY]
 ```
+
+Pylint
+```
+pylint [PATH TO FILE]
+```
+
+
+
+
