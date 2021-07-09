@@ -5,9 +5,9 @@ Provides utility functions for anomaly detection
 import torch
 from torchvision import transforms as T
 from PIL import Image
-from score_calculation import calculate_patch_score, calculate_image_score, \
+from .score_calculation import calculate_patch_score, calculate_image_score, \
 calculate_patch_classification, calculate_image_classification
-from feature_extraction import extract_embedding_vectors
+from .feature_extraction import extract_embedding_vectors
 
 
 
