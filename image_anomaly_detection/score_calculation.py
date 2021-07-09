@@ -7,7 +7,7 @@ import torch
 
 
 
-def calculate_image_score(patch_scores: torch.Tensor) -> torch.Tensor:
+def image_score(patch_scores: torch.Tensor) -> torch.Tensor:
     """Calculate image scores from patch scores
 
     Args:
@@ -24,7 +24,7 @@ def calculate_image_score(patch_scores: torch.Tensor) -> torch.Tensor:
 
 
 
-def calculate_image_classification(image_scores: torch.Tensor, thresh: float) -> torch.Tensor:
+def image_classification(image_scores: torch.Tensor, thresh: float) -> torch.Tensor:
     """Calculate image classifications from image scores
 
     Args:
@@ -45,7 +45,7 @@ def calculate_image_classification(image_scores: torch.Tensor, thresh: float) ->
 
 
 
-def calculate_patch_classification(patch_scores: torch.Tensor, thresh: float) -> torch.Tensor:
+def patch_classification(patch_scores: torch.Tensor, thresh: float) -> torch.Tensor:
     """Calculate patch classifications from patch scores
 
     Args:
@@ -66,9 +66,9 @@ def calculate_patch_classification(patch_scores: torch.Tensor, thresh: float) ->
 
 
 
-def calculate_patch_score(mean: torch.Tensor, cov_inv: torch.Tensor,
-                          embedding_vectors: torch.Tensor, device: torch.device,
-                          do_gaussian_filter: bool = True) -> torch.Tensor:
+def patch_score(mean: torch.Tensor, cov_inv: torch.Tensor,
+                embedding_vectors: torch.Tensor, device: torch.device,
+                do_gaussian_filter: bool = True) -> torch.Tensor:
     """Calculate patch scores from embedding vectors
 
     Args:

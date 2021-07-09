@@ -5,24 +5,24 @@ Provides utility functions for anomaly detection
 import torch
 from torchvision import transforms as T
 from PIL import Image
-from .score_calculation import calculate_patch_score, calculate_image_score, \
-calculate_patch_classification, calculate_image_classification
+from .score_calculation import patch_score, image_score, \
+patch_classification, image_classification
 from .feature_extraction import extract_embedding_vectors
 
 
 
 def anomaly_calculation(batch, features_model, mean, cov_inv, device, indices=None):
     embedding_vectors = extract_embedding_vectors(features_model, batch, device, indices=indices)
-    patch_scores = calculate_patch_score(mean, cov_inv, embedding_vectors, device)
-    image_scores = calculate_image_score(patch_scores)
+    patch_scores = patch_score(mean, cov_inv, embedding_vectors, device)
+    image_scores = image_score(patch_scores)
     return patch_scores, image_scores
 
 
 def anomaly_detection(batch, features_model, mean, cov_inv, device, thresh, indices=None):
     patch_scores, image_scores = anomaly_calculation(batch, features_model,
                                                      mean, cov_inv, device, indices=indices)
-    patch_classifications = calculate_patch_classification(patch_scores, thresh)
-    image_classifications = calculate_image_classification(image_scores, thresh)
+    patch_classifications = patch_classification(patch_scores, thresh)
+    image_classifications = image_classification(image_scores, thresh)
     return patch_scores, image_scores, patch_classifications, image_classifications
 
 
