@@ -13,7 +13,7 @@ from tqdm import tqdm
 class WideResnet50Features(torch.nn.Module):
 
     def __init__(self, device):
-        super(WideResnet50Features, self).__init__()
+        super().__init__()
         self.resnet50_2 = models.wide_resnet50_2(pretrained=True, progress=True)
         self.resnet50_2.to(device)
         self.eval()
@@ -36,7 +36,7 @@ class WideResnet50Features(torch.nn.Module):
 class Resnet18Features(torch.nn.Module):
 
     def __init__(self, device):
-        super(Resnet18Features, self).__init__()
+        super().__init__()
         self.resnet18 = models.resnet18(pretrained=True, progress=True)
         self.resnet18.to(device)
         self.eval()

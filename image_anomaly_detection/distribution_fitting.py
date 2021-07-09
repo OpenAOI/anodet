@@ -2,6 +2,7 @@
 Provides functions for calculating the multivariate normal distribution of embedding vectors
 """
 
+import typing
 import torch
 import numpy as np
 from tqdm import tqdm
@@ -9,7 +10,7 @@ from tqdm import tqdm
 
 
 def joint_normal_distribution(embedding_vectors: torch.Tensor, device: torch.device,
-                              invert_cov: bool = True) -> (torch.Tensor, torch.Tensor):
+                              invert_cov: bool = True) -> typing.Tuple[torch.Tensor, torch.Tensor]:
     """Calculate multivariate normal distribution from embedding vectors
 
     Args:

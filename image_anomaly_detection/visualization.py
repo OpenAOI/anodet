@@ -9,7 +9,7 @@ from skimage.segmentation import mark_boundaries
 
 
 def boundary_image_classification_group(images, patch_classifications,
-                                            image_classifications, size):
+                                        image_classifications, size):
 
     padding = 30
     margin = 50
@@ -18,8 +18,8 @@ def boundary_image_classification_group(images, patch_classifications,
 
     for i, image in enumerate(images):
         b_image = boundary_image_classification(image, patch_classifications[i],
-                                                           image_classifications[i],
-                                                           size, padding=padding)
+                                                image_classifications[i],
+                                                size, padding=padding)
         height = b_image.shape[0]
         tot_image[:, i*(height+margin):(i+1)*(height)+i*margin, :] = b_image
 
@@ -28,7 +28,7 @@ def boundary_image_classification_group(images, patch_classifications,
 
 
 def boundary_image_classification(image, patch_classification,
-                                      image_classification, size, padding=20):
+                                  image_classification, size, padding=20):
 
     frame = (np.ones((size+2*padding, size+2*padding, 3))*255).astype(np.uint8)
 

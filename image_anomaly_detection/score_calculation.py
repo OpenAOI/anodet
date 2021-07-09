@@ -19,7 +19,7 @@ def image_score(patch_scores: torch.Tensor) -> torch.Tensor:
     """
 
     # Calculate max value of each matrix
-    image_scores = patch_scores.reshape(patch_scores.shape[0], -1).max(axis=1).values
+    image_scores = torch.max(patch_scores.reshape(patch_scores.shape[0], -1), -1).values
     return image_scores
 
 
