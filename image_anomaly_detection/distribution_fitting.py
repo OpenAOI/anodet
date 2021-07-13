@@ -4,42 +4,44 @@ Provides functions for calculating the multivariate normal distribution of embed
 
 import typing
 import torch
-import numpy as np
-from tqdm import tqdm
 
 
 
-def joint_normal_distribution(embedding_vectors: torch.Tensor, device: torch.device,
-                              invert_cov: bool = True) -> typing.Tuple[torch.Tensor, torch.Tensor]:
+def joint_normal_distribution(embedding_vectors:
+                              torch.Tensor) -> typing.Tuple[torch.Tensor, torch.Tensor]:
     """Calculate multivariate normal distribution from embedding vectors
 
     Args:
         embedding_vectors: A batch of embedding vectors
-        device: The device on which to run the function
 
     Returns:
         (mean, cov_inv): The mean vectors and the inverted covariance matrices
 
     """
 
+    # Prepare embedding vectors
     batch_length, channels, height, width = embedding_vectors.size()
     embedding_vectors = embedding_vectors.view(batch_length, channels, height * width)
-    print('Calculating mean')
-    mean = torch.mean(embedding_vectors, dim=0)#.numpy()
-    cov = torch.zeros(channels, channels, height * width).numpy()
-    identity_matrix = np.identity(channels)
 
-    for i in tqdm(range(height*width), 'Calculating covariance'):
-        cov[:, :, i] = np.cov(embedding_vectors[:, :, i].cpu().numpy(), rowvar=False) \
-        + 0.01 * identity_matrix
+    # Calculate mean
+    mean = torch.mean(embedding_vectors, dim=0)
 
-    cov = torch.from_numpy(cov).to(device)
-    if not invert_cov:
-        return mean, cov
+    # Calculate covariance
+    identity = torch.eye(channels)
+    cov = pytorch_cov(embedding_vectors.permute(2, 0, 1), rowvar=False) + 0.01 * identity
 
-    print('Calculating inverse of covariance')
-    cov_inv = cov.permute(2, 0, 1)
-    cov_inv = torch.inverse(cov_inv)
+    # Calculate inverse
+    cov_inv = torch.inverse(cov)
     cov_inv = cov_inv.permute(1, 2, 0)
 
     return mean, cov_inv
+
+
+
+# From: https://github.com/pytorch/pytorch/issues/19037
+def pytorch_cov(tensor: torch.Tensor, rowvar: bool=True, bias: bool=False) -> torch.Tensor:
+    """Estimate a covariance matrix (np.cov)"""
+    tensor = tensor if rowvar else tensor.transpose(-1, -2)
+    tensor = tensor - tensor.mean(dim=-1, keepdim=True)
+    factor = 1 / (tensor.shape[-1] - int(not bool(bias)))
+    return factor * tensor @ tensor.transpose(-1, -2).conj()

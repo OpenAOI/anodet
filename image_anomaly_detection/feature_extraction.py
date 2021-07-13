@@ -16,7 +16,7 @@ class WideResnet50Features(torch.nn.Module):
         super().__init__()
         self.resnet50_2 = models.wide_resnet50_2(pretrained=True, progress=True)
         self.resnet50_2.to(device)
-        self.eval()
+        self.resnet50_2.eval()
 
     def forward(self, batch):
         batch = self.resnet50_2.conv1(batch)
@@ -39,7 +39,7 @@ class Resnet18Features(torch.nn.Module):
         super().__init__()
         self.resnet18 = models.resnet18(pretrained=True, progress=True)
         self.resnet18.to(device)
-        self.eval()
+        self.resnet18.eval()
 
     def forward(self, batch):
         batch = self.resnet18.conv1(batch)
