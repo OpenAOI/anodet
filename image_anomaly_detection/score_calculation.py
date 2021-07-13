@@ -2,8 +2,8 @@
 Provides functions for calculating different scores based on distributions and embedding vectors
 """
 
-from scipy.ndimage import gaussian_filter
 import torch
+import torchvision
 
 
 
@@ -67,15 +67,14 @@ def patch_classification(patch_scores: torch.Tensor, thresh: float) -> torch.Ten
 
 
 def patch_score(mean: torch.Tensor, cov_inv: torch.Tensor,
-                embedding_vectors: torch.Tensor, device: torch.device,
-                do_gaussian_filter: bool = True) -> torch.Tensor:
+                embedding_vectors: torch.Tensor,
+                apply_gaussian_filter: bool = True) -> torch.Tensor:
     """Calculate patch scores from embedding vectors
 
     Args:
         mean: A batch of mean vectors
         cov_inv: A batch of inverted covariance matrices
         embedding_vectors: A batch of embedding vectors
-        device: The device on which to run the function
         do_gaussian_filter: If True apply gaussian filter, else do not
 
     Returns:
@@ -97,11 +96,8 @@ def patch_score(mean: torch.Tensor, cov_inv: torch.Tensor,
     patch_scores = mahalanobis_distances.reshape(batch_size, width, height)
 
     # Apply gaussian filter
-    if do_gaussian_filter:
-        patch_scores = patch_scores.cpu().numpy()
-        for i in range(patch_scores.shape[0]):
-            patch_scores[i] = gaussian_filter(patch_scores[i], sigma=4)
-        patch_scores = torch.from_numpy(patch_scores).to(device)
+    if apply_gaussian_filter:
+        patch_scores = torchvision.transforms.GaussianBlur(33, sigma=4)(patch_scores)
 
     return patch_scores
 
