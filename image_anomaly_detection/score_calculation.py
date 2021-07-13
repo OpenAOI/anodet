@@ -75,7 +75,7 @@ def patch_score(mean: torch.Tensor, cov_inv: torch.Tensor,
         mean: A batch of mean vectors
         cov_inv: A batch of inverted covariance matrices
         embedding_vectors: A batch of embedding vectors
-        do_gaussian_filter: If True apply gaussian filter, else do not
+        apply_gaussian_filter: If True apply gaussian filter, else do not
 
     Returns:
         patch_scores: A batch of patch scores
