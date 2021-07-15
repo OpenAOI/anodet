@@ -10,14 +10,14 @@ import numpy as np
 
 
 
-def to_batch(images: List[np.ndarray], transform: T.Compose, device: torch.device) -> torch.Tensor:
-    """Converts a list of numpy array images to a pytorch tensor batch with given transform"""
+def to_batch(images: List[np.ndarray], transforms: T.Compose, device: torch.device) -> torch.Tensor:
+    """Converts a list of numpy array images to a pytorch tensor batch with given transforms"""
     assert len(images) > 0
 
     transformed_images = []
     for i, image in enumerate(images):
         image = Image.fromarray(image).convert('RGB')
-        transformed_images.append(transform(image))
+        transformed_images.append(transforms(image))
 
     height, width = transformed_images[0].shape[1:3]
     batch = torch.zeros((len(images), 3, height, width))
