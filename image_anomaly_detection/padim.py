@@ -2,6 +2,7 @@ import math
 import random
 from typing import Optional, Callable, List
 import torch
+from torchvision import transforms as T
 import numpy as np
 from .feature_extraction import ResnetFeaturesExtractor
 from .utils import to_batch, pytorch_cov, mahalanobis
@@ -13,12 +14,22 @@ class Padim:
     def __init__(self, device: torch.device, backbone_name: str,
                  mean: Optional[torch.Tensor] = None,
                  cov_inv: Optional[torch.Tensor] = None,
+                 transform: Optional[T.Compose] = None,
                  channel_indices: Optional[torch.Tensor] = None,
                  layer_indices: Optional[List[int]] = None,
                  layer_hook: Optional[Callable[[torch.Tensor], torch.Tensor]] = None) -> None:
 
         self.device = device
         self.features_extractor = ResnetFeaturesExtractor(backbone_name, self.device)
+
+        self.transform = transform
+        if self.transform is None:
+            self.transform = T.Compose([T.Resize(224),
+                                        T.CenterCrop(224),
+                                        T.ToTensor(),
+                                        T.Normalize(mean=[0.485, 0.456, 0.406],
+                                                    std=[0.229, 0.224, 0.225])
+                                       ])
 
         self.mean = mean
         self.cov_inv = cov_inv
@@ -69,7 +80,7 @@ class Padim:
     def predict(self, images: List[np.ndarray]) -> torch.Tensor:
         assert self.mean is not None and self.cov_inv is not None
 
-        batch = to_batch(images, self.device)
+        batch = to_batch(images, self.transform, self.device)
         embedding_vectors = self.features_extractor(batch,
                                                     channel_indices=self.channel_indices,
                                                     layer_hook=self.layer_hook,
