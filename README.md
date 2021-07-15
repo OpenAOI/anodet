@@ -22,7 +22,7 @@ pip3 install --editable [PATH TO REPOSITORY]
 
 Before merge request run:
 ```
-pytest --mypy --pylint
+pytest --mypy --flake8
 ```
 
 
