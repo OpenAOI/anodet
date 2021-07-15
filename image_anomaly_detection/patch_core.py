@@ -13,19 +13,23 @@ from .utils import to_batch
 
 class PatchCore:
 
-    def __init__(self, device: torch.device, backbone_name: str,
+    def __init__(self, backbone_name: str,
                  embedding_coreset: Optional[torch.Tensor] = None,
-                 transform: Optional[T.Compose] = None,
+                 device: Optional[torch.device] = None,
+                 transforms: Optional[T.Compose] = None,
                  channel_indices: Optional[torch.Tensor] = None,
                  layer_indices: Optional[List[int]] = None,
                  layer_hook: Optional[Callable[[torch.Tensor], torch.Tensor]] = None) -> None:
 
         self.device = device
+        if self.device is None:
+            self.device = torch.device('cpu')
+
         self.features_extractor = ResnetFeaturesExtractor(backbone_name, self.device)
 
-        self.transform = transform
-        if self.transform is None:
-            self.transform = T.Compose([T.Resize(224),
+        self.transforms = transforms
+        if self.transforms is None:
+            self.transforms = T.Compose([T.Resize(224),
                                         T.CenterCrop(224),
                                         T.ToTensor(),
                                         T.Normalize(mean=[0.485, 0.456, 0.406],
@@ -85,7 +89,7 @@ class PatchCore:
     def predict(self, images: List[np.ndarray], n_neighbors: int = 9) -> torch.Tensor:
         assert self.embedding_coreset is not None
 
-        batch = to_batch(images, self.transform, self.device)
+        batch = to_batch(images, self.transforms, self.device)
         embedding_vectors = self.features_extractor(batch,
                                                     channel_indices=self.channel_indices,
                                                     layer_hook=self.layer_hook,

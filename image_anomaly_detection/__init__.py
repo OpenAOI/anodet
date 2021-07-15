@@ -12,7 +12,7 @@ patch_classification, image_classification
 from .visualization import boundary_image, boundary_image_classification, \
 boundary_image_classification_group
 
-from .datasets import MVTecDataset
+from .datasets.dataset import Dataset
 
 from .padim import Padim
 
