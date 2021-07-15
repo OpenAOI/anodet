@@ -32,12 +32,14 @@ pytest --mypy --pylint
 Some parts used in patch_core.py :
 https://github.com/hcw-00/PatchCore_anomaly_detection
 
-Code in directory sampling_methods/ :
+Code in directory sampling_methods :
 https://github.com/google/active-learning
 
-concatenate_two_layers function in feature_extraction.py:
+concatenate_two_layers function in feature_extraction.py :
 https://github.com/xiahaifeng1995/PaDiM-Anomaly-Detection-Localization-master
 
+pytorch_cov function in utils.py :
+https://github.com/pytorch/pytorch/issues/19037
 
 
 
