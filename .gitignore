@@ -2,5 +2,5 @@
 deprecated/*
 *.ipynb_checkpoints*
 distributions/*
-
+*image_anomaly_detection.egg-info
 
