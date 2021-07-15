@@ -2,29 +2,31 @@
 Provides utility functions for anomaly detection
 """
 
+from typing import List
 import torch
 from torchvision import transforms as T
 from PIL import Image
+import numpy as np
 
 
 
-def to_batch(images, device):
-    cropsize = 224
-    transform_x = T.Compose([
-        T.Resize(cropsize),
-        T.CenterCrop(cropsize),
-        T.ToTensor(),
-        T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-    ])
+def to_batch(images: List[np.ndarray], transform: T.Compose, device: torch.device) -> torch.Tensor:
+    """Converts a list of numpy array images to a pytorch tensor batch with given transform"""
+    assert len(images) > 0
 
-    batch = torch.zeros((len(images), 3, cropsize, cropsize))
+    transformed_images = []
     for i, image in enumerate(images):
         image = Image.fromarray(image).convert('RGB')
-        image = transform_x(image)
-        batch[i] = image
+        transformed_images.append(transform(image))
 
-    batch = batch.to(device)
-    return batch
+    height, width = transformed_images[0].shape[1:3]
+    batch = torch.zeros((len(images), 3, height, width))
+
+    for i, transformed_image in enumerate(transformed_images):
+        batch[i] = transformed_image
+
+    return batch.to(device)
+
 
 
 

@@ -1,13 +1,11 @@
 import math
 from typing import Optional, Callable, List
 import torch
+from torchvision import transforms as T
 import numpy as np
-
 from sklearn.random_projection import SparseRandomProjection
 from sklearn.neighbors import NearestNeighbors
 from .sampling_methods.kcenter_greedy import kCenterGreedy
-
-
 from .feature_extraction import ResnetFeaturesExtractor
 from .utils import to_batch
 
@@ -17,6 +15,7 @@ class PatchCore:
 
     def __init__(self, device: torch.device, backbone_name: str,
                  embedding_coreset: Optional[torch.Tensor] = None,
+                 transform: Optional[T.Compose] = None,
                  channel_indices: Optional[torch.Tensor] = None,
                  layer_indices: Optional[List[int]] = None,
                  layer_hook: Optional[Callable[[torch.Tensor], torch.Tensor]] = None) -> None:
@@ -24,9 +23,20 @@ class PatchCore:
         self.device = device
         self.features_extractor = ResnetFeaturesExtractor(backbone_name, self.device)
 
+        self.transform = transform
+        if self.transform is None:
+            self.transform = T.Compose([T.Resize(224),
+                                        T.CenterCrop(224),
+                                        T.ToTensor(),
+                                        T.Normalize(mean=[0.485, 0.456, 0.406],
+                                                    std=[0.229, 0.224, 0.225])
+                                       ])
+
+
         self.embedding_coreset = embedding_coreset
 
         self.channel_indices = channel_indices
+
 
         self.layer_indices = layer_indices
         if self.layer_indices is None:
@@ -58,7 +68,8 @@ class PatchCore:
         )
 
         batch_length, vector_num, channel_num = embedding_vectors.shape
-        embedding_vectors = embedding_vectors.reshape(batch_length*vector_num, channel_num).cpu().numpy()
+        embedding_vectors = embedding_vectors.reshape(batch_length*vector_num,
+                                                      channel_num).cpu().numpy()
 
         randomprojector = SparseRandomProjection(n_components='auto', eps=0.9)
         randomprojector.fit(embedding_vectors)
@@ -74,7 +85,7 @@ class PatchCore:
     def predict(self, images: List[np.ndarray], n_neighbors: int = 9) -> torch.Tensor:
         assert self.embedding_coreset is not None
 
-        batch = to_batch(images, self.device)
+        batch = to_batch(images, self.transform, self.device)
         embedding_vectors = self.features_extractor(batch,
                                                     channel_indices=self.channel_indices,
                                                     layer_hook=self.layer_hook,
