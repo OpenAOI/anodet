@@ -1,5 +1,5 @@
 import math
-from typing import Optional, Callable, List
+from typing import Optional, Callable, List, cast
 import torch
 from torchvision import transforms as T
 import numpy as np
@@ -21,21 +21,22 @@ class PatchCore:
                  layer_indices: Optional[List[int]] = None,
                  layer_hook: Optional[Callable[[torch.Tensor], torch.Tensor]] = None) -> None:
 
-        self.device = device
-        if self.device is None:
-            self.device = torch.device('cpu')
+        if device is not None:
+            self.device = cast(torch.device, device)
+        else:
+            self.device = cast(torch.device, torch.device('cpu'))
 
         self.features_extractor = ResnetFeaturesExtractor(backbone_name, self.device)
 
-        self.transforms = transforms
-        if self.transforms is None:
-            self.transforms = T.Compose([T.Resize(224),
-                                        T.CenterCrop(224),
-                                        T.ToTensor(),
-                                        T.Normalize(mean=[0.485, 0.456, 0.406],
-                                                    std=[0.229, 0.224, 0.225])
-                                       ])
-
+        if transforms is not None:
+            self.transforms = cast(T.Compose, transforms)
+        else:
+            self.transforms = cast(T.Compose, T.Compose([T.Resize(224),
+                                                         T.CenterCrop(224),
+                                                         T.ToTensor(),
+                                                         T.Normalize(mean=[0.485, 0.456, 0.406],
+                                                                     std=[0.229, 0.224, 0.225])
+                                                        ]))
 
         self.embedding_coreset = embedding_coreset
 

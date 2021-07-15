@@ -11,7 +11,7 @@ def allowed_file(filename):
     return ("." in filename and filename.rsplit(".", 1)[1].lower() in ["png", "jpg", "jpeg"])
 
 
-class Dataset(Dataset):
+class IADataset(Dataset):
 
     def __init__(self, image_directory_path: str,
                  mask_directory_path: Optional[str] = None,
@@ -65,7 +65,7 @@ class Dataset(Dataset):
         # Load image
         image = Image.open(self.image_paths[idx]).convert('RGB')
         image = self.image_transforms(image)
-                
+
         # Load mask if mask_directory_path argument is given
         if self.mask_directory_path is not None:
             mask = Image.open(self.mask_paths[idx])
@@ -74,5 +74,5 @@ class Dataset(Dataset):
         else:
             mask = torch.zeros([1, image.shape[1], image.shape[2]])
             image_classification = 1
-            
-        return image, image_classification, mask 
+
+        return image, image_classification, mask
