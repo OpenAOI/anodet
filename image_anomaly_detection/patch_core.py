@@ -13,35 +13,26 @@ from .utils import to_batch
 
 class PatchCore:
 
-    def __init__(self, backbone_name: str,
-                 embedding_coreset: Optional[torch.Tensor] = None,
-                 device: Optional[torch.device] = None,
-                 transforms: Optional[T.Compose] = None,
-                 channel_indices: Optional[torch.Tensor] = None,
-                 layer_indices: Optional[List[int]] = None,
-                 layer_hook: Optional[Callable[[torch.Tensor], torch.Tensor]] = None) -> None:
-
-        if device is not None:
-            self.device = cast(torch.device, device)
-        else:
-            self.device = cast(torch.device, torch.device('cpu'))
-
-        self.features_extractor = ResnetFeaturesExtractor(backbone_name, self.device)
-
-        if transforms is not None:
-            self.transforms = cast(T.Compose, transforms)
-        else:
-            self.transforms = cast(T.Compose, T.Compose([T.Resize(224),
+    def __init__(self, backbone: str = 'resnet18',
+                 device: torch.device = torch.device('cpu'),
+                 transforms: T.Compose = T.Compose([T.Resize(224),
                                                          T.CenterCrop(224),
                                                          T.ToTensor(),
                                                          T.Normalize(mean=[0.485, 0.456, 0.406],
                                                                      std=[0.229, 0.224, 0.225])
-                                                        ]))
+                                                   ]),
+                 embedding_coreset: Optional[torch.Tensor] = None,
+                 channel_indices: Optional[torch.Tensor] = None,
+                 layer_indices: Optional[List[int]] = None,
+                 layer_hook: Optional[Callable[[torch.Tensor], torch.Tensor]] = None) -> None:
+
+        self.device = device
+        self.features_extractor = ResnetFeaturesExtractor(backbone, self.device)
+        self.transforms = transforms
 
         self.embedding_coreset = embedding_coreset
 
         self.channel_indices = channel_indices
-
 
         self.layer_indices = layer_indices
         if self.layer_indices is None:

@@ -13,7 +13,9 @@ class ResnetFeaturesExtractor(torch.nn.Module):
 
     def __init__(self, backbone_name, device):
         super().__init__()
-
+        
+        assert backbone_name in ['resnet18', 'wide_resnet50']
+        
         if backbone_name == 'resnet18':
             self.backbone = models.resnet18(pretrained=True, progress=True)
         elif backbone_name == 'wide_resnet50':
