@@ -11,40 +11,33 @@ from .utils import to_batch, pytorch_cov, mahalanobis
 
 class Padim:
 
-    def __init__(self, backbone_name: str,
-                 mean: Optional[torch.Tensor] = None,
-                 cov_inv: Optional[torch.Tensor] = None,
-                 device: Optional[torch.device] = None,
-                 transforms: Optional[T.Compose] = None,
-                 channel_indices: Optional[torch.Tensor] = None,
-                 layer_indices: Optional[List[int]] = None,
-                 layer_hook: Optional[Callable[[torch.Tensor], torch.Tensor]] = None) -> None:
-
-        if device is not None:
-            self.device = cast(torch.device, device)
-        else:
-            self.device = cast(torch.device, torch.device('cpu'))
-
-        self.features_extractor = ResnetFeaturesExtractor(backbone_name, self.device)
-
-        if transforms is not None:
-            self.transforms = cast(T.Compose, transforms)
-        else:
-            self.transforms = cast(T.Compose, T.Compose([T.Resize(224),
+    def __init__(self, backbone: str = 'resnet18',
+                 device: torch.device = torch.device('cpu'),
+                 transforms: T.Compose = T.Compose([T.Resize(224),
                                                          T.CenterCrop(224),
                                                          T.ToTensor(),
                                                          T.Normalize(mean=[0.485, 0.456, 0.406],
                                                                      std=[0.229, 0.224, 0.225])
-                                                        ]))
+                                                   ]),
+                 mean: Optional[torch.Tensor] = None,
+                 cov_inv: Optional[torch.Tensor] = None,
+                 channel_indices: Optional[torch.Tensor] = None,
+                 layer_indices: Optional[List[int]] = None,
+                 layer_hook: Optional[Callable[[torch.Tensor], torch.Tensor]] = None) -> None:
+
+
+        self.device = device
+        self.features_extractor = ResnetFeaturesExtractor(backbone, self.device)
+        self.transforms = transforms
 
         self.mean = mean
         self.cov_inv = cov_inv
 
         self.channel_indices = channel_indices
         if self.channel_indices is None:
-            if backbone_name == 'resnet18':
+            if backbone == 'resnet18':
                 self.channel_indices = get_indices(100, 448, self.device)
-            elif backbone_name == 'wide_resnet50':
+            elif backbone == 'wide_resnet50':
                 self.channel_indices = get_indices(550, 1792, self.device)
 
         self.layer_indices = layer_indices

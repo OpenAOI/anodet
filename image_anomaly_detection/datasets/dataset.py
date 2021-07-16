@@ -15,26 +15,20 @@ class IADataset(Dataset):
 
     def __init__(self, image_directory_path: str,
                  mask_directory_path: Optional[str] = None,
-                 image_transforms: Optional[T.Compose] = None,
-                 mask_transforms: Optional[T.Compose] = None) -> None:
-
-        # Set image transfroms
-        self.image_transforms = image_transforms
-        if self.image_transforms is None:
-            self.image_transforms = T.Compose([T.Resize(224),
+                 image_transforms: T.Compose = T.Compose([T.Resize(224),
                                                T.CenterCrop(224),
                                                T.ToTensor(),
                                                T.Normalize(mean=[0.485, 0.456, 0.406],
                                                            std=[0.229, 0.224, 0.225])
-                                              ])
-
-        # Set mask transforms
-        self.mask_transforms = mask_transforms
-        if self.mask_transforms is None:
-            self.mask_transforms = T.Compose([T.Resize(224),
+                                              ]),
+                 mask_transforms: Optional[T.Compose] = T.Compose([T.Resize(224),
                                               T.CenterCrop(224),
                                               T.ToTensor()
                                              ])
+                ) -> None:
+
+        self.image_transforms = image_transforms
+        self.mask_transforms = mask_transforms
 
         # Load image paths
         self.image_directory_path = image_directory_path
