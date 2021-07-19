@@ -5,7 +5,6 @@ Provides functions for calculating different scores based on distributions and e
 import torch
 
 
-
 def image_score(patch_scores: torch.Tensor) -> torch.Tensor:
     """Calculate image scores from patch scores
 
@@ -20,7 +19,6 @@ def image_score(patch_scores: torch.Tensor) -> torch.Tensor:
     # Calculate max value of each matrix
     image_scores = torch.max(patch_scores.reshape(patch_scores.shape[0], -1), -1).values
     return image_scores
-
 
 
 def image_classification(image_scores: torch.Tensor, thresh: float) -> torch.Tensor:
@@ -41,7 +39,6 @@ def image_classification(image_scores: torch.Tensor, thresh: float) -> torch.Ten
     image_classifications[image_classifications < thresh] = 1
     image_classifications[image_classifications >= thresh] = 0
     return image_classifications
-
 
 
 def patch_classification(patch_scores: torch.Tensor, thresh: float) -> torch.Tensor:

@@ -1,34 +1,25 @@
 import math
 import random
-from typing import Optional, Callable, List, cast
+from typing import Optional, Callable, List, Tuple
 import torch
 from torchvision import transforms as T
-import numpy as np
+import torch.nn.functional as F
 from .feature_extraction import ResnetFeaturesExtractor
-from .utils import to_batch, pytorch_cov, mahalanobis
-
+from .utils import pytorch_cov, mahalanobis
 
 
 class Padim:
 
     def __init__(self, backbone: str = 'resnet18',
                  device: torch.device = torch.device('cpu'),
-                 transforms: T.Compose = T.Compose([T.Resize(224),
-                                                         T.CenterCrop(224),
-                                                         T.ToTensor(),
-                                                         T.Normalize(mean=[0.485, 0.456, 0.406],
-                                                                     std=[0.229, 0.224, 0.225])
-                                                   ]),
                  mean: Optional[torch.Tensor] = None,
                  cov_inv: Optional[torch.Tensor] = None,
                  channel_indices: Optional[torch.Tensor] = None,
                  layer_indices: Optional[List[int]] = None,
                  layer_hook: Optional[Callable[[torch.Tensor], torch.Tensor]] = None) -> None:
 
-
         self.device = device
         self.features_extractor = ResnetFeaturesExtractor(backbone, self.device)
-        self.transforms = transforms
 
         self.mean = mean
         self.cov_inv = cov_inv
@@ -42,12 +33,11 @@ class Padim:
 
         self.layer_indices = layer_indices
         if self.layer_indices is None:
-            self.layer_indices = [0,1,2]
+            self.layer_indices = [0, 1, 2]
 
         self.layer_hook = layer_hook
 
         self.to_device(self.device)
-
 
     def to_device(self, device: torch.device) -> None:
         self.device = device
@@ -60,7 +50,6 @@ class Padim:
         if self.channel_indices is not None:
             self.channel_indices = self.channel_indices.to(device)
 
-
     def fit(self, dataloader: torch.utils.data.DataLoader) -> None:
 
         embedding_vectors = self.features_extractor.from_dataloader(
@@ -72,14 +61,12 @@ class Padim:
 
         self.mean = torch.mean(embedding_vectors, dim=0)
         cov = pytorch_cov(embedding_vectors.permute(1, 0, 2), rowvar=False) \
-        + 0.01 * torch.eye(embedding_vectors.shape[2])
+            + 0.01 * torch.eye(embedding_vectors.shape[2])
         self.cov_inv = torch.inverse(cov)
 
-
-    def predict(self, images: List[np.ndarray]) -> torch.Tensor:
+    def predict(self, batch: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         assert self.mean is not None and self.cov_inv is not None
 
-        batch = to_batch(images, self.transforms, self.device)
         embedding_vectors = self.features_extractor(batch,
                                                     channel_indices=self.channel_indices,
                                                     layer_hook=self.layer_hook,
@@ -90,8 +77,15 @@ class Padim:
         patch_width = int(math.sqrt(embedding_vectors.shape[1]))
         patch_scores = patch_scores.reshape(batch.shape[0], patch_width, patch_width)
 
-        return patch_scores
+        score_map = F.interpolate(patch_scores.unsqueeze(1), size=batch.shape[2],
+                                  mode='bilinear', align_corners=False).squeeze()
+        if batch.shape[0] == 1:
+            score_map = score_map.unsqueeze(0)
+        score_map = T.GaussianBlur(33, sigma=4)(score_map)
 
+        image_scores = torch.max(score_map.reshape(score_map.shape[0], -1), -1).values
+
+        return image_scores, score_map
 
 
 def get_indices(choose, total, device):

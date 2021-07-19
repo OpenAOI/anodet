@@ -9,6 +9,18 @@ from PIL import Image
 import numpy as np
 
 
+standard_image_transform = T.Compose([T.Resize(224),
+                                      T.CenterCrop(224),
+                                      T.ToTensor(),
+                                      T.Normalize(mean=[0.485, 0.456, 0.406],
+                                                  std=[0.229, 0.224, 0.225])
+                                      ])
+
+standard_mask_transform = T.Compose([T.Resize(224),
+                                     T.CenterCrop(224),
+                                     T.ToTensor()
+                                     ])
+
 
 def to_batch(images: List[np.ndarray], transforms: T.Compose, device: torch.device) -> torch.Tensor:
     """Converts a list of numpy array images to a pytorch tensor batch with given transforms"""
@@ -28,16 +40,13 @@ def to_batch(images: List[np.ndarray], transforms: T.Compose, device: torch.devi
     return batch.to(device)
 
 
-
-
 # From: https://github.com/pytorch/pytorch/issues/19037
-def pytorch_cov(tensor: torch.Tensor, rowvar: bool=True, bias: bool=False) -> torch.Tensor:
+def pytorch_cov(tensor: torch.Tensor, rowvar: bool = True, bias: bool = False) -> torch.Tensor:
     """Estimate a covariance matrix (np.cov)"""
     tensor = tensor if rowvar else tensor.transpose(-1, -2)
     tensor = tensor - tensor.mean(dim=-1, keepdim=True)
     factor = 1 / (tensor.shape[-1] - int(not bool(bias)))
     return factor * tensor @ tensor.transpose(-1, -2).conj()
-
 
 
 def mahalanobis(mean: torch.Tensor, cov_inv: torch.Tensor, batch: torch.Tensor) -> torch.Tensor:
@@ -58,11 +67,11 @@ def mahalanobis(mean: torch.Tensor, cov_inv: torch.Tensor, batch: torch.Tensor) 
 
     # Assert that parameters has acceptable dimensions
     assert len(mean.shape) == 1 or len(mean.shape) == 2, \
-    'mean must be a vector or a set of vectors (matrix)'
+        'mean must be a vector or a set of vectors (matrix)'
     assert len(batch.shape) == 1 or len(batch.shape) == 2 or len(batch.shape) == 3, \
-    'batch must be a vector or a set of vectors (matrix) or a set of sets of vectors (3d tensor)'
+        'batch must be a vector or a set of vectors (matrix) or a set of sets of vectors (3d tensor)'
     assert len(cov_inv.shape) == 2 or len(cov_inv.shape) == 3, \
-    'cov_inv must be a matrix or a set of matrices (3d tensor)'
+        'cov_inv must be a matrix or a set of matrices (3d tensor)'
 
     # Standardize the dimensions
     if len(mean.shape) == 1:
