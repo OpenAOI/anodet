@@ -8,14 +8,12 @@ from torchvision import models
 from tqdm import tqdm
 
 
-
 class ResnetFeaturesExtractor(torch.nn.Module):
-
     def __init__(self, backbone_name, device):
         super().__init__()
-        
+
         assert backbone_name in ['resnet18', 'wide_resnet50']
-        
+
         if backbone_name == 'resnet18':
             self.backbone = models.resnet18(pretrained=True, progress=True)
         elif backbone_name == 'wide_resnet50':
@@ -25,10 +23,8 @@ class ResnetFeaturesExtractor(torch.nn.Module):
         self.backbone.eval()
         self.eval()
 
-
     def to(self, device=None, dtype=None, non_blocking=False):
         self.backbone.to(device, dtype=dtype, non_blocking=non_blocking)
-
 
     def forward(self, batch, channel_indices=None, layer_hook=None, layer_indices=None):
 
@@ -52,7 +48,6 @@ class ResnetFeaturesExtractor(torch.nn.Module):
             if layer_hook is not None:
                 layers = [layer_hook(layer) for layer in layers]
 
-
             embedding_vectors = concatenate_layers(layers)
 
             if channel_indices is not None:
@@ -64,7 +59,6 @@ class ResnetFeaturesExtractor(torch.nn.Module):
 
             return embedding_vectors
 
-
     def from_dataloader(self, dataloader, channel_indices=None,
                         layer_hook=None, layer_indices=None):
 
@@ -73,9 +67,9 @@ class ResnetFeaturesExtractor(torch.nn.Module):
         for (batch, _, _) in tqdm(dataloader, 'Feature extraction'):
 
             batch_embedding_vectors = self(batch,
-                                            channel_indices=channel_indices,
-                                            layer_hook=layer_hook,
-                                            layer_indices=layer_indices)
+                                           channel_indices=channel_indices,
+                                           layer_hook=layer_hook,
+                                           layer_indices=layer_indices)
 
             if embedding_vectors is None:
                 embedding_vectors = batch_embedding_vectors
@@ -85,13 +79,11 @@ class ResnetFeaturesExtractor(torch.nn.Module):
         return embedding_vectors
 
 
-
 def concatenate_layers(layers):
     expanded_layers = layers[0]
     for layer in layers[1:]:
         expanded_layers = concatenate_two_layers(expanded_layers, layer)
     return expanded_layers
-
 
 
 def concatenate_two_layers(layer1, layer2):

@@ -1,26 +1,19 @@
 import math
-from typing import Optional, Callable, List, cast
+from typing import Optional, Callable, List, Tuple
 import torch
-from torchvision import transforms as T
 import numpy as np
 from sklearn.random_projection import SparseRandomProjection
 from sklearn.neighbors import NearestNeighbors
 from .sampling_methods.kcenter_greedy import kCenterGreedy
 from .feature_extraction import ResnetFeaturesExtractor
-from .utils import to_batch
-
+from scipy.ndimage import gaussian_filter
+import cv2
 
 
 class PatchCore:
 
     def __init__(self, backbone: str = 'resnet18',
                  device: torch.device = torch.device('cpu'),
-                 transforms: T.Compose = T.Compose([T.Resize(224),
-                                                         T.CenterCrop(224),
-                                                         T.ToTensor(),
-                                                         T.Normalize(mean=[0.485, 0.456, 0.406],
-                                                                     std=[0.229, 0.224, 0.225])
-                                                   ]),
                  embedding_coreset: Optional[torch.Tensor] = None,
                  channel_indices: Optional[torch.Tensor] = None,
                  layer_indices: Optional[List[int]] = None,
@@ -28,7 +21,6 @@ class PatchCore:
 
         self.device = device
         self.features_extractor = ResnetFeaturesExtractor(backbone, self.device)
-        self.transforms = transforms
 
         self.embedding_coreset = embedding_coreset
 
@@ -36,7 +28,7 @@ class PatchCore:
 
         self.layer_indices = layer_indices
         if self.layer_indices is None:
-            self.layer_indices = [1,2]
+            self.layer_indices = [1, 2]
 
         self.layer_hook = layer_hook
         if self.layer_hook is None:
@@ -44,14 +36,12 @@ class PatchCore:
 
         self.to_device(self.device)
 
-
     def to_device(self, device: torch.device) -> None:
         self.device = device
         if self.features_extractor is not None:
             self.features_extractor.to(device)
         if self.channel_indices is not None:
             self.channel_indices = self.channel_indices.to(device)
-
 
     def fit(self, dataloader: torch.utils.data.DataLoader,
             sampling_ratio: float = 0.001) -> None:
@@ -76,12 +66,10 @@ class PatchCore:
 
         self.embedding_coreset = embedding_vectors[selected_idx]
 
-
-
-    def predict(self, images: List[np.ndarray], n_neighbors: int = 9) -> torch.Tensor:
+    def predict(self, batch: torch.Tensor,
+                n_neighbors: int = 9) -> Tuple[torch.Tensor, torch.Tensor]:
         assert self.embedding_coreset is not None
 
-        batch = to_batch(images, self.transforms, self.device)
         embedding_vectors = self.features_extractor(batch,
                                                     channel_indices=self.channel_indices,
                                                     layer_hook=self.layer_hook,
@@ -91,10 +79,20 @@ class PatchCore:
                                 metric='minkowski', p=2).fit(self.embedding_coreset)
 
         patch_width = int(math.sqrt(embedding_vectors.shape[1]))
-        patch_scores = torch.zeros((embedding_vectors.shape[0], patch_width, patch_width))
+        score_maps = torch.zeros((embedding_vectors.shape[0], batch.shape[2], batch.shape[2]))
+
+        image_scores = torch.zeros(embedding_vectors.shape[0])
 
         for i in range(embedding_vectors.shape[0]):
             patch_score, _ = nbrs.kneighbors(embedding_vectors[i].cpu().numpy())
-            patch_scores[i] = torch.from_numpy(patch_score[:,0].reshape((patch_width,patch_width)))
+            score_map = patch_score[:, 0].reshape((patch_width, patch_width))
 
-        return patch_scores
+            N_b = patch_score[np.argmax(patch_score[:, 0])]
+            w = (1 - (np.max(np.exp(N_b))/np.sum(np.exp(N_b))))
+            image_scores[i] = w*max(patch_score[:, 0])
+
+            score_map = cv2.resize(score_map, (batch.shape[2], batch.shape[2]))
+            score_map = torch.from_numpy(gaussian_filter(score_map, sigma=4))
+            score_maps[i] = score_map
+
+        return image_scores, score_maps

@@ -4,7 +4,7 @@ from PIL import Image
 import torch
 from torch.utils.data import Dataset
 from torchvision import transforms as T
-
+from ..utils import standard_image_transform, standard_mask_transform
 
 
 def allowed_file(filename):
@@ -15,17 +15,8 @@ class IADataset(Dataset):
 
     def __init__(self, image_directory_path: str,
                  mask_directory_path: Optional[str] = None,
-                 image_transforms: T.Compose = T.Compose([T.Resize(224),
-                                               T.CenterCrop(224),
-                                               T.ToTensor(),
-                                               T.Normalize(mean=[0.485, 0.456, 0.406],
-                                                           std=[0.229, 0.224, 0.225])
-                                              ]),
-                 mask_transforms: Optional[T.Compose] = T.Compose([T.Resize(224),
-                                              T.CenterCrop(224),
-                                              T.ToTensor()
-                                             ])
-                ) -> None:
+                 image_transforms: T.Compose = standard_image_transform,
+                 mask_transforms: T.Compose = standard_mask_transform) -> None:
 
         self.image_transforms = image_transforms
         self.mask_transforms = mask_transforms
@@ -49,10 +40,8 @@ class IADataset(Dataset):
 
             assert len(self.image_paths) == len(self.mask_paths)
 
-
     def __len__(self):
         return len(self.image_paths)
-
 
     def __getitem__(self, idx):
 
