@@ -1,14 +1,19 @@
+"""
+Provides classes and functions for working with PaDiM.
+"""
+
 import math
 import random
 from typing import Optional, Callable, List, Tuple
 import torch
 from torchvision import transforms as T
 import torch.nn.functional as F
-from .feature_extraction import ResnetFeaturesExtractor
+from .feature_extraction import ResnetEmbeddingsExtractor
 from .utils import pytorch_cov, mahalanobis
 
 
 class Padim:
+    """A padim model with functions to train and perform inference."""
 
     def __init__(self, backbone: str = 'resnet18',
                  device: torch.device = torch.device('cpu'),
@@ -19,8 +24,7 @@ class Padim:
                  layer_hook: Optional[Callable[[torch.Tensor], torch.Tensor]] = None) -> None:
 
         self.device = device
-        self.features_extractor = ResnetFeaturesExtractor(backbone, self.device)
-
+        self.embeddings_extractor = ResnetEmbeddingsExtractor(backbone, self.device)
         self.mean = mean
         self.cov_inv = cov_inv
 
@@ -36,13 +40,12 @@ class Padim:
             self.layer_indices = [0, 1, 2]
 
         self.layer_hook = layer_hook
-
         self.to_device(self.device)
 
     def to_device(self, device: torch.device) -> None:
         self.device = device
-        if self.features_extractor is not None:
-            self.features_extractor.to(device)
+        if self.embeddings_extractor is not None:
+            self.embeddings_extractor.to_device(device)
         if self.mean is not None:
             self.mean = self.mean.to(device)
         if self.cov_inv is not None:
@@ -52,7 +55,7 @@ class Padim:
 
     def fit(self, dataloader: torch.utils.data.DataLoader) -> None:
 
-        embedding_vectors = self.features_extractor.from_dataloader(
+        embedding_vectors = self.embeddings_extractor.from_dataloader(
             dataloader,
             channel_indices=self.channel_indices,
             layer_hook=self.layer_hook,
@@ -67,10 +70,11 @@ class Padim:
     def predict(self, batch: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         assert self.mean is not None and self.cov_inv is not None
 
-        embedding_vectors = self.features_extractor(batch,
-                                                    channel_indices=self.channel_indices,
-                                                    layer_hook=self.layer_hook,
-                                                    layer_indices=self.layer_indices)
+        embedding_vectors = self.embeddings_extractor(batch,
+                                                      channel_indices=self.channel_indices,
+                                                      layer_hook=self.layer_hook,
+                                                      layer_indices=self.layer_indices
+                                                      )
 
         patch_scores = mahalanobis(self.mean, self.cov_inv, embedding_vectors)
 

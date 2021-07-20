@@ -1,3 +1,7 @@
+"""
+Provides classes and functions for working with PatchCore.
+"""
+
 import math
 from typing import Optional, Callable, List, Tuple
 import torch
@@ -5,12 +9,13 @@ import numpy as np
 from sklearn.random_projection import SparseRandomProjection
 from sklearn.neighbors import NearestNeighbors
 from .sampling_methods.kcenter_greedy import kCenterGreedy
-from .feature_extraction import ResnetFeaturesExtractor
+from .feature_extraction import ResnetEmbeddingsExtractor
 from scipy.ndimage import gaussian_filter
 import cv2
 
 
 class PatchCore:
+    """A PatchCore model with functions to train and perform inference."""
 
     def __init__(self, backbone: str = 'resnet18',
                  device: torch.device = torch.device('cpu'),
@@ -20,10 +25,8 @@ class PatchCore:
                  layer_hook: Optional[Callable[[torch.Tensor], torch.Tensor]] = None) -> None:
 
         self.device = device
-        self.features_extractor = ResnetFeaturesExtractor(backbone, self.device)
-
+        self.embeddings_extractor = ResnetEmbeddingsExtractor(backbone, self.device)
         self.embedding_coreset = embedding_coreset
-
         self.channel_indices = channel_indices
 
         self.layer_indices = layer_indices
@@ -38,15 +41,15 @@ class PatchCore:
 
     def to_device(self, device: torch.device) -> None:
         self.device = device
-        if self.features_extractor is not None:
-            self.features_extractor.to(device)
+        if self.embeddings_extractor is not None:
+            self.embeddings_extractor.to_device(device)
         if self.channel_indices is not None:
             self.channel_indices = self.channel_indices.to(device)
 
     def fit(self, dataloader: torch.utils.data.DataLoader,
             sampling_ratio: float = 0.001) -> None:
 
-        embedding_vectors = self.features_extractor.from_dataloader(
+        embedding_vectors = self.embeddings_extractor.from_dataloader(
             dataloader,
             channel_indices=self.channel_indices,
             layer_hook=self.layer_hook,
@@ -70,10 +73,11 @@ class PatchCore:
                 n_neighbors: int = 9) -> Tuple[torch.Tensor, torch.Tensor]:
         assert self.embedding_coreset is not None
 
-        embedding_vectors = self.features_extractor(batch,
-                                                    channel_indices=self.channel_indices,
-                                                    layer_hook=self.layer_hook,
-                                                    layer_indices=self.layer_indices)
+        embedding_vectors = self.embeddings_extractor(batch,
+                                                      channel_indices=self.channel_indices,
+                                                      layer_hook=self.layer_hook,
+                                                      layer_indices=self.layer_indices
+                                                      )
 
         nbrs = NearestNeighbors(n_neighbors=n_neighbors, algorithm='ball_tree',
                                 metric='minkowski', p=2).fit(self.embedding_coreset)

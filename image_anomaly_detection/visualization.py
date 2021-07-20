@@ -1,5 +1,5 @@
 """
-Provides functions for visualizing results of anomaly detection
+Provides functions for visualizing results of anomaly detection.
 """
 
 import cv2

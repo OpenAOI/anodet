@@ -1,17 +1,34 @@
 """
-Provides classes and functions for extracting embedding vectors
+Provides classes and functions for extracting embedding vectors from neural networks.
 """
 
 import torch
 import torch.nn.functional as F
 from torchvision import models
 from tqdm import tqdm
+from typing import List, Optional, Callable, cast
+from torch.utils.data import DataLoader
 
 
-class ResnetFeaturesExtractor(torch.nn.Module):
-    def __init__(self, backbone_name, device):
+class ResnetEmbeddingsExtractor(torch.nn.Module):
+    """A class to hold, and extract embedding vectors from, a resnet.
+
+    Attributes:
+        backbone: The resnet from which to extract embedding vectors.
+
+    """
+
+    def __init__(self, backbone_name: str, device: torch.device) -> None:
+        """Construct the backbone and set appropriate mode and device
+
+        args:
+            backbone_name: The name of the desired backbone. Must be
+                one of: [resnet18, wide_resnet50].
+            device: The device where to run the network.
+
+        """
+
         super().__init__()
-
         assert backbone_name in ['resnet18', 'wide_resnet50']
 
         if backbone_name == 'resnet18':
@@ -23,10 +40,35 @@ class ResnetFeaturesExtractor(torch.nn.Module):
         self.backbone.eval()
         self.eval()
 
-    def to(self, device=None, dtype=None, non_blocking=False):
-        self.backbone.to(device, dtype=dtype, non_blocking=non_blocking)
+    def to_device(self, device: torch.device) -> None:
+        """Perform device conversion on backone
 
-    def forward(self, batch, channel_indices=None, layer_hook=None, layer_indices=None):
+        See pytorch docs for documentation on torch.Tensor.to
+
+        """
+        self.backbone.to(device)
+
+    def forward(self,
+                batch: torch.Tensor,
+                channel_indices: Optional[torch.Tensor] = None,
+                layer_hook: Optional[Callable[[torch.Tensor], torch.Tensor]] = None,
+                layer_indices: Optional[List[int]] = None
+                ) -> torch.Tensor:
+        """Run inference on backbone and return the embedding vectors.
+
+        args:
+            batch: A batch of images.
+            channel_indices: A list of indices with the desired channels to include in
+                the embedding vectors.
+            layer_hook: A function that runs on each layer of the resnet before
+                concatenating them.
+            layer_indices: A list of indices with the desired layers to include in the
+                embedding vectors.
+
+        returns:
+            embedding_vectors: The embedding vectors.
+
+        """
 
         with torch.no_grad():
 
@@ -34,12 +76,10 @@ class ResnetFeaturesExtractor(torch.nn.Module):
             batch = self.backbone.bn1(batch)
             batch = self.backbone.relu(batch)
             batch = self.backbone.maxpool(batch)
-
             layer1 = self.backbone.layer1(batch)
             layer2 = self.backbone.layer2(layer1)
             layer3 = self.backbone.layer3(layer2)
             layer4 = self.backbone.layer4(layer3)
-
             layers = [layer1, layer2, layer3, layer4]
 
             if layer_indices is not None:
@@ -59,10 +99,15 @@ class ResnetFeaturesExtractor(torch.nn.Module):
 
             return embedding_vectors
 
-    def from_dataloader(self, dataloader, channel_indices=None,
-                        layer_hook=None, layer_indices=None):
+    def from_dataloader(self,
+                        dataloader: DataLoader,
+                        channel_indices: Optional[torch.Tensor] = None,
+                        layer_hook: Optional[Callable[[torch.Tensor], torch.Tensor]] = None,
+                        layer_indices: Optional[List[int]] = None
+                        ) -> torch.Tensor:
+        """Same as self.forward but take a dataloader instead of a tensor as argument."""
 
-        embedding_vectors = None
+        embedding_vectors: Optional[torch.Tensor] = None
 
         for (batch, _, _) in tqdm(dataloader, 'Feature extraction'):
 
@@ -76,17 +121,21 @@ class ResnetFeaturesExtractor(torch.nn.Module):
             else:
                 embedding_vectors = torch.cat((embedding_vectors, batch_embedding_vectors), 0)
 
-        return embedding_vectors
+        return cast(torch.Tensor, embedding_vectors)
 
 
-def concatenate_layers(layers):
+def concatenate_layers(layers: List[torch.Tensor]) -> torch.Tensor:
+    """Scale all tensors to the heigth and width of the first tensor and concatenate them."""
+
     expanded_layers = layers[0]
     for layer in layers[1:]:
         expanded_layers = concatenate_two_layers(expanded_layers, layer)
     return expanded_layers
 
 
-def concatenate_two_layers(layer1, layer2):
+def concatenate_two_layers(layer1: torch.Tensor, layer2: torch.Tensor) -> torch.Tensor:
+    """Scale the second tensor to the height and width of the first tensor and concatenate them."""
+
     device = layer1.device
     batch_length, channel_num1, height1, width1 = layer1.size()
     _, channel_num2, height2, width2 = layer2.size()

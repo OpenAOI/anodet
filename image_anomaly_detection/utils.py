@@ -1,5 +1,5 @@
 """
-Provides utility functions for anomaly detection
+Provides utility functions for anomaly detection.
 """
 
 from typing import List
@@ -23,7 +23,7 @@ standard_mask_transform = T.Compose([T.Resize(224),
 
 
 def to_batch(images: List[np.ndarray], transforms: T.Compose, device: torch.device) -> torch.Tensor:
-    """Converts a list of numpy array images to a pytorch tensor batch with given transforms"""
+    """Convert a list of numpy array images to a pytorch tensor batch with given transforms."""
     assert len(images) > 0
 
     transformed_images = []
@@ -42,7 +42,7 @@ def to_batch(images: List[np.ndarray], transforms: T.Compose, device: torch.devi
 
 # From: https://github.com/pytorch/pytorch/issues/19037
 def pytorch_cov(tensor: torch.Tensor, rowvar: bool = True, bias: bool = False) -> torch.Tensor:
-    """Estimate a covariance matrix (np.cov)"""
+    """Estimate a covariance matrix (np.cov)."""
     tensor = tensor if rowvar else tensor.transpose(-1, -2)
     tensor = tensor - tensor.mean(dim=-1, keepdim=True)
     factor = 1 / (tensor.shape[-1] - int(not bool(bias)))
@@ -56,12 +56,12 @@ def mahalanobis(mean: torch.Tensor, cov_inv: torch.Tensor, batch: torch.Tensor) 
     and a point or elementwise between a set of distributions and a set of points.
 
     Args:
-        mean: A mean vector or a set of mean vectors
-        cov_inv: A inverse of covariance matrix or a set of covariance matricies
-        batch: A point or a set of points
+        mean: A mean vector or a set of mean vectors.
+        cov_inv: A inverse of covariance matrix or a set of covariance matricies.
+        batch: A point or a set of points.
 
     Returns:
-        mahalonobis_distance: A distance or a set of distances or a set of sets of distances
+        mahalonobis_distance: A distance or a set of distances or a set of sets of distances.
 
     """
 
@@ -119,3 +119,59 @@ def mahalanobis(mean: torch.Tensor, cov_inv: torch.Tensor, batch: torch.Tensor) 
         mahalanobis_distance = mahalanobis_distance.reshape(ratio, mini_batch_size)
 
     return mahalanobis_distance
+
+
+def image_score(patch_scores: torch.Tensor) -> torch.Tensor:
+    """Calculate image scores from patch scores.
+
+    Args:
+        patch_scores: A batch of patch scores.
+
+    Returns:
+        image_scores: A batch of image scores.
+
+    """
+
+    # Calculate max value of each matrix
+    image_scores = torch.max(patch_scores.reshape(patch_scores.shape[0], -1), -1).values
+    return image_scores
+
+
+def image_classification(image_scores: torch.Tensor, thresh: float) -> torch.Tensor:
+    """Calculate image classifications from image scores.
+
+    Args:
+        image_scores: A batch of image scores.
+        thresh: A treshold value. If an image score is larger than
+                or equal to thresh it is classified as anomalous.
+
+    Returns:
+        image_classifications: A batch of image classifcations.
+
+    """
+
+    # Apply threshold
+    image_classifications = image_scores.clone()
+    image_classifications[image_classifications < thresh] = 1
+    image_classifications[image_classifications >= thresh] = 0
+    return image_classifications
+
+
+def patch_classification(patch_scores: torch.Tensor, thresh: float) -> torch.Tensor:
+    """Calculate patch classifications from patch scores.
+
+    Args:
+        patch_scores: A batch of patch scores.
+        thresh: A treshold value. If a patch score is larger than
+                or equal to thresh it is classified as anomalous.
+
+    Returns:
+        patch_classifications: A batch of patch classifications.
+
+    """
+
+    # Apply threshold
+    patch_classifications = patch_scores.clone()
+    patch_classifications[patch_classifications < thresh] = 1
+    patch_classifications[patch_classifications >= thresh] = 0
+    return patch_classifications
