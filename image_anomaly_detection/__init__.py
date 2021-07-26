@@ -20,4 +20,4 @@ from .patch_core import PatchCore
 
 from .sampling_methods.kcenter_greedy import kCenterGreedy
 
-from .test import eval_data, visualize_eval_data, visualize_eval_pair, optimal_threshold
+from .test import visualize_eval_data, visualize_eval_pair, optimal_threshold
