@@ -18,6 +18,7 @@ Install the package
 
 ```
 cd padim_implementation
+python -m pip install -r requirements.txt
 python -m pip install .
 ```
 
