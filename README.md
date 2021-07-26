@@ -6,6 +6,8 @@ The package includes functions and classes for extracting, modifying and compari
 
 Some code has been borrowed and/or inspired by other repositories, see code reference below.
 
+See [wiki](https://gitlab.com/openaoi/padim_implementation/-/wikis/home) for documentation.
+
 
 ## Installation
 
