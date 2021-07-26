@@ -8,6 +8,8 @@ from typing import Optional, Callable, List, Tuple
 import torch
 from torchvision import transforms as T
 import torch.nn.functional as F
+from tqdm import tqdm
+import numpy as np
 from .feature_extraction import ResnetEmbeddingsExtractor
 from .utils import pytorch_cov, mahalanobis
 
@@ -68,7 +70,8 @@ class Padim:
         self.cov_inv = torch.inverse(cov)
 
     def predict(self, batch: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
-        assert self.mean is not None and self.cov_inv is not None
+        assert self.mean is not None and self.cov_inv is not None, \
+            "The model must be trained or provided with mean and cov_inv"
 
         embedding_vectors = self.embeddings_extractor(batch,
                                                       channel_indices=self.channel_indices,
@@ -90,6 +93,27 @@ class Padim:
         image_scores = torch.max(score_map.reshape(score_map.shape[0], -1), -1).values
 
         return image_scores, score_map
+
+    def evaluate(self, dataloader: torch.utils.data.DataLoader):
+
+        images = []
+        image_classifications_target = []
+        masks_target = []
+        image_scores = []
+        score_maps = []
+
+        for (batch, image_classifications, masks) in tqdm(dataloader, 'Inference'):
+            batch_image_scores, batch_score_maps = self.predict(batch)
+
+            images.extend(batch.cpu().numpy())
+            image_classifications_target.extend(image_classifications.cpu().numpy())
+            masks_target.extend(masks.cpu().numpy())
+            image_scores.extend(batch_image_scores.cpu().numpy())
+            score_maps.extend(batch_score_maps.cpu().numpy())
+
+        return np.array(images), np.array(image_classifications_target), \
+            np.array(masks_target).flatten().astype(np.uint8), \
+            np.array(image_scores), np.array(score_maps).flatten()
 
 
 def get_indices(choose, total, device):

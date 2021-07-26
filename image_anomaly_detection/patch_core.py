@@ -8,10 +8,11 @@ import torch
 import numpy as np
 from sklearn.random_projection import SparseRandomProjection
 from sklearn.neighbors import NearestNeighbors
-from .sampling_methods.kcenter_greedy import kCenterGreedy
-from .feature_extraction import ResnetEmbeddingsExtractor
 from scipy.ndimage import gaussian_filter
 import cv2
+from tqdm import tqdm
+from .sampling_methods.kcenter_greedy import kCenterGreedy
+from .feature_extraction import ResnetEmbeddingsExtractor
 
 
 class PatchCore:
@@ -69,9 +70,17 @@ class PatchCore:
 
         self.embedding_coreset = embedding_vectors[selected_idx]
 
-    def predict(self, batch: torch.Tensor,
-                n_neighbors: int = 9) -> Tuple[torch.Tensor, torch.Tensor]:
-        assert self.embedding_coreset is not None
+    def predict(self,
+                batch: torch.Tensor,
+                n_neighbors: int = 9,
+                nn_algorithm: str = "ball_tree",
+                nn_metric: str = "minkowski",
+                apply_gaussian: bool = True,
+                apply_resize: bool = True
+                ) -> Tuple[torch.Tensor, torch.Tensor]:
+
+        assert self.embedding_coreset is not None, \
+            "The model must be fitted or provided with embedding_coreset"
 
         embedding_vectors = self.embeddings_extractor(batch,
                                                       channel_indices=self.channel_indices,
@@ -79,8 +88,8 @@ class PatchCore:
                                                       layer_indices=self.layer_indices
                                                       )
 
-        nbrs = NearestNeighbors(n_neighbors=n_neighbors, algorithm='ball_tree',
-                                metric='minkowski', p=2).fit(self.embedding_coreset)
+        nbrs = NearestNeighbors(n_neighbors=n_neighbors, algorithm=nn_algorithm,
+                                metric=nn_metric, p=2).fit(self.embedding_coreset)
 
         patch_width = int(math.sqrt(embedding_vectors.shape[1]))
         score_maps = torch.zeros((embedding_vectors.shape[0], batch.shape[2], batch.shape[2]))
@@ -95,8 +104,45 @@ class PatchCore:
             w = (1 - (np.max(np.exp(N_b))/np.sum(np.exp(N_b))))
             image_scores[i] = w*max(patch_score[:, 0])
 
-            score_map = cv2.resize(score_map, (batch.shape[2], batch.shape[2]))
-            score_map = torch.from_numpy(gaussian_filter(score_map, sigma=4))
+            if apply_resize:
+                score_map = cv2.resize(score_map, (batch.shape[2], batch.shape[2]))
+            if apply_gaussian:
+                score_map = torch.from_numpy(gaussian_filter(score_map, sigma=4))
             score_maps[i] = score_map
 
         return image_scores, score_maps
+
+    def evaluate(self,
+                 dataloader: torch.utils.data.DataLoader,
+                 n_neighbors: int = 9,
+                 nn_algorithm: str = "ball_tree",
+                 nn_metric: str = "minkowski",
+                 apply_gaussian: bool = True,
+                 apply_resize: bool = True
+                 ):
+
+        images = []
+        image_classifications_target = []
+        masks_target = []
+        image_scores = []
+        score_maps = []
+
+        for (batch, image_classifications, masks) in tqdm(dataloader, 'Inference'):
+            batch_image_scores, batch_score_maps = \
+                self.predict(batch,
+                             n_neighbors,
+                             nn_algorithm,
+                             nn_metric,
+                             apply_gaussian,
+                             apply_resize
+                             )
+
+            images.extend(batch.cpu().numpy())
+            image_classifications_target.extend(image_classifications.cpu().numpy())
+            masks_target.extend(masks.cpu().numpy())
+            image_scores.extend(batch_image_scores.cpu().numpy())
+            score_maps.extend(batch_score_maps.cpu().numpy())
+
+        return np.array(images), np.array(image_classifications_target), \
+            np.array(masks_target).flatten().astype(np.uint8), \
+            np.array(image_scores), np.array(score_maps).flatten()
