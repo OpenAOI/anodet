@@ -1,6 +1,10 @@
 # image_anomaly_detection
 
-A set of functions and classes for performing anomaly detection in images
+A set of functions and classes for performing anomaly detection in images using features from pretrained neural networks.
+
+The package includes functions and classes for extracting, modifying and comparing features. It also includes unofficial implementations of [**PaDiM**](https://arxiv.org/abs/2011.08785) and [**PatchCore**](https://arxiv.org/abs/2106.08265).
+
+Some code has been borrowed and/or inspired by other repositories, see code reference below.
 
 
 ## Installation
@@ -11,19 +15,61 @@ git clone https://gitlab.com/openaoi/padim_implementation.git
 ```
 
 Install the package
+
 ```
-pip3 install [PATH TO REPOSITORY]
+cd padim_implementation
+python -m pip install .
 ```
 
-For developers
+
+## Usage example
+
+See [notebooks](https://gitlab.com/openaoi/padim_implementation/-/tree/master/notebooks) for in depth examples.
+
+
+## Development setup
+
+#### Install
+
+Install the package in editable mode
 ```
 pip3 install --editable [PATH TO REPOSITORY]
 ```
 
-Before merge request run:
+#### Tests
+
+Install packages for testing
 ```
+python -m pip install pytest pytest-mypy pytest-flake8
+```
+
+Run tests
+```
+cd [PATH TO REPOSITORY]
 pytest --mypy --flake8
 ```
+
+For configuration of pytest, mypy and flake8 edit `setup.cfg`.
+
+
+#### Creating docs
+
+Install pydoc-markdown
+```
+python -m pip install pydoc-markdown
+```
+
+Clone docs repository
+```
+git clone https://gitlab.com/openaoi/padim_implementation.wiki.git
+```
+
+Run script
+```
+cd padim_implementation.wiki
+python generate_docs.py --source-path=[PATH TO REPOSITORY] --package-name="image_anomaly_detection" --save-path=.
+```
+
 
 
 
