@@ -36,7 +36,7 @@ See [notebooks](https://gitlab.com/openaoi/padim_implementation/-/tree/master/no
 
 Install the package in editable mode
 ```
-pip3 install --editable [PATH TO REPOSITORY]
+python -m pip install --editable [PATH TO REPOSITORY]
 ```
 
 #### Tests
