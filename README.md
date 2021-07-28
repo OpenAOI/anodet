@@ -27,6 +27,17 @@ python -m pip install .
 
 ## Usage example
 
+```
+# Prepare a dataloader and fit a model to the data
+dataloader = DataLoader(...)
+padim = iad.Padim() 
+padim.fit(dataloader)
+
+# Prepare some test images and make predictions
+batch = ...
+image_scores, score_map = padim.predict(batch) 
+```
+
 See [notebooks](https://gitlab.com/openaoi/padim_implementation/-/tree/master/notebooks) for in depth examples.
 
 
