@@ -25,6 +25,20 @@ class PatchCore:
                  layer_indices: Optional[List[int]] = None,
                  layer_hook: Optional[Callable[[torch.Tensor], torch.Tensor]] = None) -> None:
 
+        """Construct the model and initialize the attributes
+
+        Args:
+            backbone: The name of the desired backbone. Must be one of: [resnet18, wide_resnet50].
+            device: The device where to run the model.
+            embedding_coreset: A tensor with the coreset, with size (N, D), \
+                where N is the number of vectors and D is the number of channel_indices.
+            channel_indices: A tensor with the desired channel indices to extract \
+                from the backbone, with size (D).
+            layer_indices: A list with the desired layers to extract from the backbone, \
+            allowed indices are 1, 2, 3 and 4.
+            layer_hook: A function that can modify the layers during extraction.
+        """
+
         self.device = device
         self.embeddings_extractor = ResnetEmbeddingsExtractor(backbone, self.device)
         self.embedding_coreset = embedding_coreset
@@ -41,6 +55,13 @@ class PatchCore:
         self.to_device(self.device)
 
     def to_device(self, device: torch.device) -> None:
+        """Perform device conversion on backone, mean, cov_inv and channel_indices
+
+        Args:
+            device: The device where to run the model.
+
+        """
+
         self.device = device
         if self.embeddings_extractor is not None:
             self.embeddings_extractor.to_device(device)
@@ -49,6 +70,14 @@ class PatchCore:
 
     def fit(self, dataloader: torch.utils.data.DataLoader,
             sampling_ratio: float = 0.001) -> None:
+
+        """Fit the model (i.e. embedding_coreset) to data.
+
+        Args:
+            dataloader: A pytorch dataloader, with sample dimensions (B, D, H, W), \
+                containing normal images.
+
+        """
 
         embedding_vectors = self.embeddings_extractor.from_dataloader(
             dataloader,
@@ -78,6 +107,22 @@ class PatchCore:
                 apply_gaussian: bool = True,
                 apply_resize: bool = True
                 ) -> Tuple[torch.Tensor, torch.Tensor]:
+
+        """Make a prediction on test images.
+
+        Args:
+            batch: A batch of test images, with dimension (B, D, h, w).
+            n_neighbors: See documentation of sklearn.neighbors.NearestNeighbors.
+            nn_metric: See documentation of sklearn.neighbors.NearestNeighbors.
+            nn_metric: See documentation of sklearn.neighbors.NearestNeighbors.
+            apply_gaussian: If true apply gaussian blur on score map.
+            apply_resize: If true resize the score_map to size of images in batch.
+
+        Returns:
+            image_scores: A tensor with the image level scores, with dimension (B).
+            score_map: A tensor with the patch level scores, with dimension (B, H, W)
+
+        """
 
         assert self.embedding_coreset is not None, \
             "The model must be fitted or provided with embedding_coreset"
@@ -120,6 +165,27 @@ class PatchCore:
                  apply_gaussian: bool = True,
                  apply_resize: bool = True
                  ):
+
+        """Run predict on all images in a dataloader and return the results.
+
+        Args:
+            dataloader: A pytorch dataloader, with sample dimensions (B, D, H, W), \
+                containing normal images.
+            n_neighbors: See documentation of sklearn.neighbors.NearestNeighbors.
+            nn_metric: See documentation of sklearn.neighbors.NearestNeighbors.
+            nn_metric: See documentation of sklearn.neighbors.NearestNeighbors.
+            apply_gaussian: If true apply gaussian blur on score map.
+            apply_resize: If true resize the score_map to size of images in batch.
+
+        Returns:
+            images: An array containing all input images.
+            image_classifications_target: An array containing the target \
+                classifications on image level.
+            masks_target: An array containing the target classifications on patch level.
+            image_scores: An array containing the predicted scores on image level.
+            score_maps: An array containing the predicted scores on patch level.
+
+        """
 
         images = []
         image_classifications_target = []

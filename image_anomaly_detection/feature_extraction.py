@@ -21,7 +21,7 @@ class ResnetEmbeddingsExtractor(torch.nn.Module):
     def __init__(self, backbone_name: str, device: torch.device) -> None:
         """Construct the backbone and set appropriate mode and device
 
-        args:
+        Args:
             backbone_name: The name of the desired backbone. Must be
                 one of: [resnet18, wide_resnet50].
             device: The device where to run the network.
@@ -56,7 +56,7 @@ class ResnetEmbeddingsExtractor(torch.nn.Module):
                 ) -> torch.Tensor:
         """Run inference on backbone and return the embedding vectors.
 
-        args:
+        Args:
             batch: A batch of images.
             channel_indices: A list of indices with the desired channels to include in
                 the embedding vectors.
@@ -65,7 +65,7 @@ class ResnetEmbeddingsExtractor(torch.nn.Module):
             layer_indices: A list of indices with the desired layers to include in the
                 embedding vectors.
 
-        returns:
+        Returns:
             embedding_vectors: The embedding vectors.
 
         """

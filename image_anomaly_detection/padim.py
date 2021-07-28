@@ -25,6 +25,22 @@ class Padim:
                  layer_indices: Optional[List[int]] = None,
                  layer_hook: Optional[Callable[[torch.Tensor], torch.Tensor]] = None) -> None:
 
+        """Construct the model and initialize the attributes
+
+        Args:
+            backbone: The name of the desired backbone. Must be one of: [resnet18, wide_resnet50].
+            device: The device where to run the model.
+            mean: A tensor with the mean vectors of each patch with size (D, H, W), \
+                where D is the number of channel_indices.
+            cov_inv: A tensor with the inverse of the covariance matrices of each patch \
+                with size (D, D, H, W), where D is the number of channel_indices.
+            channel_indices: A tensor with the desired channel indices to extract \
+                from the backbone, with size (D).
+            layer_indices: A list with the desired layers to extract from the backbone, \
+            allowed indices are 1, 2, 3 and 4.
+            layer_hook: A function that can modify the layers during extraction.
+        """
+
         self.device = device
         self.embeddings_extractor = ResnetEmbeddingsExtractor(backbone, self.device)
         self.mean = mean
@@ -45,6 +61,13 @@ class Padim:
         self.to_device(self.device)
 
     def to_device(self, device: torch.device) -> None:
+        """Perform device conversion on backone, mean, cov_inv and channel_indices
+
+        Args:
+            device: The device where to run the model.
+
+        """
+
         self.device = device
         if self.embeddings_extractor is not None:
             self.embeddings_extractor.to_device(device)
@@ -56,6 +79,13 @@ class Padim:
             self.channel_indices = self.channel_indices.to(device)
 
     def fit(self, dataloader: torch.utils.data.DataLoader) -> None:
+        """Fit the model (i.e. mean and cov_inv) to data.
+
+        Args:
+            dataloader: A pytorch dataloader, with sample dimensions (B, D, H, W), \
+                containing normal images.
+
+        """
 
         embedding_vectors = self.embeddings_extractor.from_dataloader(
             dataloader,
@@ -70,6 +100,17 @@ class Padim:
         self.cov_inv = torch.inverse(cov)
 
     def predict(self, batch: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Make a prediction on test images.
+
+        Args:
+            batch: A batch of test images, with dimension (B, D, h, w).
+
+        Returns:
+            image_scores: A tensor with the image level scores, with dimension (B).
+            score_map: A tensor with the patch level scores, with dimension (B, H, W)
+
+        """
+
         assert self.mean is not None and self.cov_inv is not None, \
             "The model must be trained or provided with mean and cov_inv"
 
@@ -94,7 +135,24 @@ class Padim:
 
         return image_scores, score_map
 
-    def evaluate(self, dataloader: torch.utils.data.DataLoader):
+    def evaluate(self, dataloader: torch.utils.data.DataLoader) \
+            -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+
+        """Run predict on all images in a dataloader and return the results.
+
+        Args:
+            dataloader: A pytorch dataloader, with sample dimensions (B, D, H, W), \
+                containing normal images.
+
+        Returns:
+            images: An array containing all input images.
+            image_classifications_target: An array containing the target \
+                classifications on image level.
+            masks_target: An array containing the target classifications on patch level.
+            image_scores: An array containing the predicted scores on image level.
+            score_maps: An array containing the predicted scores on patch level.
+
+        """
 
         images = []
         image_classifications_target = []
