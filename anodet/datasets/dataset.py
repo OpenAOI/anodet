@@ -11,7 +11,7 @@ def allowed_file(filename):
     return ("." in filename and filename.rsplit(".", 1)[1].lower() in ["png", "jpg", "jpeg"])
 
 
-class IADataset(Dataset):
+class AnodetDataset(Dataset):
 
     def __init__(self, image_directory_path: str,
                  mask_directory_path: Optional[str] = None,

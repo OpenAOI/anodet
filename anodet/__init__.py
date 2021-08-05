@@ -11,7 +11,7 @@ from .feature_extraction import ResnetEmbeddingsExtractor
 from .visualization import boundary_image, boundary_image_classification, \
 boundary_image_classification_group
 
-from .datasets.dataset import IADataset
+from .datasets.dataset import AnodetDataset
 from .datasets.mvtec_dataset import MVTecDataset
 
 from .padim import Padim
