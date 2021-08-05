@@ -1,4 +1,4 @@
-# image_anomaly_detection
+# anodet
 
 A set of functions and classes for performing anomaly detection in images using features from pretrained neural networks.
 
@@ -6,20 +6,20 @@ The package includes functions and classes for extracting, modifying and compari
 
 Some code has been borrowed and/or inspired by other repositories, see code reference below.
 
-See [wiki](https://gitlab.com/openaoi/padim_implementation/-/wikis/home) for documentation.
+See [wiki](https://gitlab.com/openaoi/anodet/-/wikis/home) for documentation.
 
 
 ## Installation
 
 Clone the repository
 ```
-git clone https://gitlab.com/openaoi/padim_implementation.git
+git clone https://gitlab.com/openaoi/anodet.git
 ```
 
 Install the package
 
 ```
-cd padim_implementation
+cd anodet
 python -m pip install -r requirements.txt
 python -m pip install .
 ```
@@ -30,7 +30,7 @@ python -m pip install .
 ```
 # Prepare a dataloader and fit a model to the data
 dataloader = DataLoader(...)
-padim = iad.Padim() 
+padim = anodet.Padim() 
 padim.fit(dataloader)
 
 # Prepare some test images and make predictions
@@ -38,7 +38,7 @@ batch = ...
 image_scores, score_map = padim.predict(batch) 
 ```
 
-See [notebooks](https://gitlab.com/openaoi/padim_implementation/-/tree/master/notebooks) for in depth examples.
+See [notebooks](https://gitlab.com/openaoi/anodet/-/tree/master/notebooks) for in depth examples.
 
 
 ## Development setup
@@ -75,13 +75,13 @@ python -m pip install pydoc-markdown
 
 Clone docs repository
 ```
-git clone https://gitlab.com/openaoi/padim_implementation.wiki.git
+git clone https://gitlab.com/openaoi/anodet.wiki.git
 ```
 
 Run script
 ```
-cd padim_implementation.wiki
-python generate_docs.py --source-path=[PATH TO REPOSITORY] --package-name="image_anomaly_detection" --save-path=.
+cd anodet.wiki
+python generate_docs.py --source-path=[PATH TO REPOSITORY] --package-name="anodet" --save-path=.
 ```
 
 
