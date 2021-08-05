@@ -7,7 +7,7 @@ with open("README.md", "r") as fh:
 setup(
     name="image_anomaly_detection",
     version="0.0.1",
-    author="Anton Eriksson",
+    author="OpenAOI",
     author_email="anton.emanuel@icloud.com",
     description="A set of functions for image anomaly detection",
     long_description=long_description,
