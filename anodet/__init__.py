@@ -8,8 +8,7 @@ classification
 
 from .feature_extraction import ResnetEmbeddingsExtractor
 
-from .visualization import boundary_image, boundary_image_classification, \
-boundary_image_classification_group
+from .visualization import boundary_image, heatmap_image
 
 from .datasets.dataset import AnodetDataset
 from .datasets.mvtec_dataset import MVTecDataset
