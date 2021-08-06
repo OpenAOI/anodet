@@ -8,6 +8,8 @@ Some code has been borrowed and/or inspired by other repositories, see code refe
 
 See [wiki](https://gitlab.com/openaoi/anodet/-/wikis/home) for documentation.
 
+#### Example result with padim on image from [MVTEC dataset](https://www.mvtec.com/company/research/datasets/mvtec-ad)
+![](notebooks/example_images/padim_example_image.png)
 
 ## Installation
 
