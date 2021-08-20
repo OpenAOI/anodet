@@ -6,7 +6,7 @@ The package includes functions and classes for extracting, modifying and compari
 
 Some code has been borrowed and/or inspired by other repositories, see code reference below.
 
-See [wiki](https://gitlab.com/openaoi/anodet/-/wikis/home) for documentation.
+See [wiki](https://github.com/OpenAOI/anodet/wiki) for documentation.
 
 #### Example result with padim on image from [MVTEC dataset](https://www.mvtec.com/company/research/datasets/mvtec-ad)
 ![](notebooks/example_images/padim_example_image.png)
@@ -15,7 +15,7 @@ See [wiki](https://gitlab.com/openaoi/anodet/-/wikis/home) for documentation.
 
 Clone the repository
 ```
-git clone https://gitlab.com/openaoi/anodet.git
+git clone https://github.com/OpenAOI/anodet.git
 ```
 
 Install the package
@@ -40,7 +40,7 @@ batch = ...
 image_scores, score_map = padim.predict(batch) 
 ```
 
-See [notebooks](https://gitlab.com/openaoi/anodet/-/tree/master/notebooks) for in depth examples.
+See [notebooks](https://github.com/OpenAOI/anodet/tree/master/notebooks) for in depth examples.
 
 
 ## Development setup
@@ -77,7 +77,7 @@ python -m pip install pydoc-markdown
 
 Clone docs repository
 ```
-git clone https://gitlab.com/openaoi/anodet.wiki.git
+git clone https://github.com/OpenAOI/anodet.wiki.git
 ```
 
 Run script
