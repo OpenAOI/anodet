@@ -37,9 +37,9 @@ def framed_boundary_images(images: Union[np.ndarray, torch.Tensor],
         b_image = boundary_image(image, masks[i], boundary_color=boundary_color)
 
         if image_classifictions[i]:
-            b_image = frame_image(b_image, padding=padding, color=(255, 0, 0))
-        else:
             b_image = frame_image(b_image, padding=padding, color=(0, 255, 0))
+        else:
+            b_image = frame_image(b_image, padding=padding, color=(255, 0, 0))
 
         result_images.append(b_image)
 
