@@ -91,6 +91,12 @@ python generate_docs.py --source-path=[PATH TO REPOSITORY] --package-name="anode
 
 ## Code Reference
 
+PaDiM:
+https://arxiv.org/abs/2011.08785
+
+PatchCore:
+https://arxiv.org/abs/2106.08265
+
 Some parts used in patch_core.py :
 https://github.com/hcw-00/PatchCore_anomaly_detection
 
