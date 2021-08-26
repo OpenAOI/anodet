@@ -80,7 +80,7 @@ def blend_image(image_one: Union[np.ndarray, torch.Tensor],
     layer_one = image_one.copy()
     layer_two = image_two.copy()
 
-    layer_two = cv2.resize(layer_two, (height, width), interpolation=cv2.INTER_AREA)
+    layer_two = cv2.resize(layer_two, (width, height), interpolation=cv2.INTER_AREA)
     blended_image = Image.blend(
         Image.fromarray(layer_one),
         Image.fromarray(layer_two),
@@ -114,7 +114,7 @@ s 1 is transparent and 0 draws image_two with
 
     height, width, channels = image_one.shape
 
-    image_two = cv2.resize(image_two, (height, width), interpolation=cv2.INTER_AREA)
+    image_two = cv2.resize(image_two, (width, height), interpolation=cv2.INTER_AREA)
     mask = cv2.resize(mask, (height, width), interpolation=cv2.INTER_AREA)
     mask = np.array(mask).astype(bool)
     mask = Image.fromarray(mask)
