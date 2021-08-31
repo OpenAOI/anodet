@@ -90,10 +90,10 @@ def blend_image(image_one: Union[np.ndarray, torch.Tensor],
         alpha=alpha
     )
 
-    if mask is not None:
+    if isinstance(mask, (np.ndarray, torch.Tensor)):
         mask = to_numpy(mask).copy()
         mask = cv2.resize(mask, (width, height), interpolation=cv2.INTER_AREA)
-        blended_image = composite_image(layer_one, np.array(blended_image), mask)
+        blended_image = composite_image(layer_one, np.array(blended_image), mask)  # type: ignore
 
     return np.array(blended_image)
 
