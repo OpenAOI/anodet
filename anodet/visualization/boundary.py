@@ -63,10 +63,11 @@ def boundary_images(images: Union[np.ndarray, torch.Tensor],
 
     images = to_numpy(images).copy()
     masks = to_numpy(patch_classifications).copy()
-    images = [boundary_image(image, masks[i], boundary_color=boundary_color)
-              for i, image in enumerate(images)]
 
-    return np.array(images)
+    b_images = [boundary_image(image, masks[i], boundary_color=boundary_color)
+                for i, image in enumerate(images)]
+
+    return np.array(b_images)
 
 
 def boundary_image(image: Union[np.ndarray, torch.Tensor],
