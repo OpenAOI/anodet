@@ -18,7 +18,8 @@ def merge_images(images: Union[np.ndarray, torch.Tensor],
     Returns:
         tot_image: The merged image
     """
-    images = to_numpy(images)
+    images = to_numpy(images).copy()
+
     amount, height, width, channels = images.shape
     tot_image_height = height
     tot_image_width = amount * width + (amount - 1) * margin
@@ -47,7 +48,8 @@ def frame_image(image: Union[np.ndarray, torch.Tensor],
     Returns:
         f_image: The framed image.
     """
-    image = to_numpy(image)
+    image = to_numpy(image).copy()
+
     height, width, channels = image.shape
     image_height = height + 2 * padding
     image_width = width + 2 * padding
@@ -61,7 +63,8 @@ def frame_image(image: Union[np.ndarray, torch.Tensor],
 
 def blend_image(image_one: Union[np.ndarray, torch.Tensor],
                 image_two: Union[np.ndarray, torch.Tensor],
-                alpha: float = 0.5
+                alpha: float = 0.5,
+                mask: Optional[np.ndarray] = None
                 ) -> np.ndarray:
     """
     Draws image on another image, with a set opacity.
@@ -69,23 +72,28 @@ def blend_image(image_one: Union[np.ndarray, torch.Tensor],
         image_one: The base image.
         image_two: The image to draw with.
         alpha: The opacity of image two.
+        mask: 1 or True what parts of image_two that will be pasted n image_one
 
     Returns:
         blended_image: The blended image.
 
     """
-    image_one = to_numpy(image_one)
-    image_two = to_numpy(image_two)
-    height, width, channels = image_one.shape
-    layer_one = image_one.copy()
-    layer_two = image_two.copy()
+    layer_one = to_numpy(image_one).copy()
+    layer_two = to_numpy(image_two).copy()
+    height, width, channels = layer_one.shape
 
     layer_two = cv2.resize(layer_two, (width, height), interpolation=cv2.INTER_AREA)
+
     blended_image = Image.blend(
         Image.fromarray(layer_one),
         Image.fromarray(layer_two),
         alpha=alpha
     )
+
+    if isinstance(mask, (np.ndarray, torch.Tensor)):
+        mask = to_numpy(mask).copy()
+        mask = cv2.resize(mask, (width, height), interpolation=cv2.INTER_AREA)
+        blended_image = composite_image(layer_one, np.array(blended_image), mask)  # type: ignore
 
     return np.array(blended_image)
 
@@ -108,21 +116,19 @@ s 1 is transparent and 0 draws image_two with
         tot_Image: The combined image.
 
     """
-    image_one = to_numpy(image_one)
-    image_two = to_numpy(image_two)
-    mask = to_numpy(mask)
+    image_one = to_numpy(image_one).copy()
+    image_two = to_numpy(image_two).copy()
+    mask = to_numpy(mask).copy()
 
     height, width, channels = image_one.shape
 
     image_two = cv2.resize(image_two, (width, height), interpolation=cv2.INTER_AREA)
-    mask = cv2.resize(mask, (height, width), interpolation=cv2.INTER_AREA)
-    mask = np.array(mask).astype(bool)
-    mask = Image.fromarray(mask)
-    image_one = Image.fromarray(image_one)
-    image_two = Image.fromarray(image_two)
-    tot_image = Image.composite(image_one, image_two, mask)
+    mask = cv2.resize(mask, (width, height), interpolation=cv2.INTER_AREA)
 
-    return np.array(tot_image)
+    mask = (mask == (1 | True))
+    image_one[mask] = image_two[mask]
+
+    return image_one
 
 
 def normalize_patch_scores(patch_scores: Union[np.ndarray, torch.Tensor],
@@ -132,14 +138,14 @@ def normalize_patch_scores(patch_scores: Union[np.ndarray, torch.Tensor],
     """
     Takes a set of patch_scores and normalize them to values between 0-1.
     Args:
-        max_v:
-        min_v:
+        max_v: max value for normalization
+        min_v: min value for normalization
         patch_scores: array of patch_scores.
 
     Returns:
         normalized_matrix: A normalized numpy array.
     """
-    patch_scores = to_numpy(patch_scores)
+    patch_scores = to_numpy(patch_scores).copy()
 
     if min_v and max_v:
         min_score = min_v
@@ -151,6 +157,7 @@ def normalize_patch_scores(patch_scores: Union[np.ndarray, torch.Tensor],
         max_score = patch_scores.max()
 
     normalized_matrix = normalize_matrix(patch_scores, min_score, max_score)
+
     return normalized_matrix
 
 

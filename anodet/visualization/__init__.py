@@ -17,6 +17,10 @@ from .highlight import (
     highlighted_image
 )
 
+from .frame import (
+    frame_by_anomalies
+)
+
 from .utils import (
     merge_images,
     normalize_matrix,
