@@ -8,7 +8,7 @@ from typing import Union, Optional
 
 def heatmap_images(images: Union[np.ndarray, torch.Tensor],
                    list_of_patch_scores: Union[np.ndarray, torch.Tensor],
-                   patch_classifications: Optional[Union[np.ndarray, torch.Tensor]] = None,
+                   masks: Optional[Union[np.ndarray, torch.Tensor]] = None,
                    min_v: Optional[float] = None,
                    max_v: Optional[float] = None,
                    alpha: float = 0.6) -> np.ndarray:
@@ -18,7 +18,7 @@ def heatmap_images(images: Union[np.ndarray, torch.Tensor],
     Args:
         images: The images to draw heatmaps on.
         list_of_patch_scores: The values to use to generate colormap.
-        patch_classifications: array of patch classifications.
+        masks: array of patch classifications.
         min_v: min value for normalization
         max_v: max value for normalization
         alpha: The opacity of the colormap
@@ -27,9 +27,12 @@ def heatmap_images(images: Union[np.ndarray, torch.Tensor],
         heatmaps: a array of heatmaps.
 
     """
+    heatmaps = []
     images = to_numpy(images).copy()
     list_of_patch_scores = to_numpy(list_of_patch_scores).copy()
-    heatmaps = []
+
+    if isinstance(masks, (np.ndarray, torch.Tensor)):
+        masks = to_numpy(masks).copy()
 
     norm_patch_scores = normalize_patch_scores(
         list_of_patch_scores,
@@ -38,7 +41,7 @@ def heatmap_images(images: Union[np.ndarray, torch.Tensor],
     )
 
     for i, score in enumerate(norm_patch_scores):
-        mask = patch_classifications[i] if patch_classifications is not None else None
+        mask = masks[i] if isinstance(masks, (np.ndarray, torch.Tensor)) else None
         image_heatmap = heatmap_image(images[i], score, mask=mask, alpha=alpha)
         heatmaps.append(image_heatmap)
 
@@ -70,6 +73,10 @@ def heatmap_image(image: Union[np.ndarray, torch.Tensor],
     """
     image = to_numpy(image).copy()
     patch_scores = to_numpy(patch_scores).copy()
+
+    if isinstance(mask, (np.ndarray, torch.Tensor)):
+        mask = to_numpy(mask).copy()
+        mask = np.logical_not(mask).astype(np.uint8)
 
     if min_v and max_v:
         patch_scores = normalize_patch_scores(
