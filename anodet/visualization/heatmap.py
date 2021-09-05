@@ -18,7 +18,7 @@ def heatmap_images(images: Union[np.ndarray, torch.Tensor],
     Args:
         images: The images to draw heatmaps on.
         list_of_patch_scores: The values to use to generate colormap.
-        masks: array of patch classifications.
+        masks: array of masks on where to draw heatmap on images.
         min_v: min value for normalization
         max_v: max value for normalization
         alpha: The opacity of the colormap
@@ -61,7 +61,7 @@ def heatmap_image(image: Union[np.ndarray, torch.Tensor],
     Args:
         image: image to draw the colormap on.
         patch_scores: patch scores or normalized ones
-        mask: mask where to paste heatmap
+        mask: mask where to draw heatmap on image.
         min_v: min value for normalization
         max_v: max value for normalization
         alpha: Opacity on the colormap
