@@ -8,6 +8,7 @@ from typing import Union, Optional
 
 def heatmap_images(images: Union[np.ndarray, torch.Tensor],
                    list_of_patch_scores: Union[np.ndarray, torch.Tensor],
+                   patch_classifications: Optional[Union[np.ndarray, torch.Tensor]] = None,
                    min_v: Optional[float] = None,
                    max_v: Optional[float] = None,
                    alpha: float = 0.6) -> np.ndarray:
@@ -17,6 +18,7 @@ def heatmap_images(images: Union[np.ndarray, torch.Tensor],
     Args:
         images: The images to draw heatmaps on.
         list_of_patch_scores: The values to use to generate colormap.
+        patch_classifications: array of patch classifications.
         min_v: min value for normalization
         max_v: max value for normalization
         alpha: The opacity of the colormap
@@ -34,8 +36,10 @@ def heatmap_images(images: Union[np.ndarray, torch.Tensor],
         min_v=min_v,
         max_v=max_v
     )
+
     for i, score in enumerate(norm_patch_scores):
-        image_heatmap = heatmap_image(images[i], score, alpha=alpha)
+        mask = patch_classifications[i] if patch_classifications is not None else None
+        image_heatmap = heatmap_image(images[i], score, mask=mask, alpha=alpha)
         heatmaps.append(image_heatmap)
 
     return np.array(heatmaps)
@@ -43,6 +47,7 @@ def heatmap_images(images: Union[np.ndarray, torch.Tensor],
 
 def heatmap_image(image: Union[np.ndarray, torch.Tensor],
                   patch_scores: Union[np.ndarray, torch.Tensor],
+                  mask: Optional[Union[np.ndarray, torch.Tensor]] = None,
                   min_v: Optional[float] = None,
                   max_v: Optional[float] = None,
                   alpha: float = 0.6) -> np.ndarray:
@@ -53,6 +58,7 @@ def heatmap_image(image: Union[np.ndarray, torch.Tensor],
     Args:
         image: image to draw the colormap on.
         patch_scores: patch scores or normalized ones
+        mask: mask where to paste heatmap
         min_v: min value for normalization
         max_v: max value for normalization
         alpha: Opacity on the colormap
@@ -75,6 +81,6 @@ def heatmap_image(image: Union[np.ndarray, torch.Tensor],
     patch_scores = (1 - patch_scores) * 255
     patch_scores = patch_scores.astype(np.uint8)
     color_map = cv2.applyColorMap(patch_scores, colormap=cv2.COLORMAP_JET)
-    heatmap = blend_image(image, color_map, alpha=alpha)
+    heatmap = blend_image(image, color_map, alpha=alpha, mask=mask)
 
     return heatmap

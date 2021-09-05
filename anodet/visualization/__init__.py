@@ -4,6 +4,7 @@ Provides functions for visualizing results of anomaly detection
 
 from .boundary import (
     boundary_image,
+    boundary_images,
     framed_boundary_images
 )
 
