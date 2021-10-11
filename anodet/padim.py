@@ -78,21 +78,29 @@ class Padim:
         if self.channel_indices is not None:
             self.channel_indices = self.channel_indices.to(device)
 
-    def fit(self, dataloader: torch.utils.data.DataLoader) -> None:
+    def fit(self, dataloader: torch.utils.data.DataLoader, extractions: int = 1) -> None:
         """Fit the model (i.e. mean and cov_inv) to data.
 
         Args:
             dataloader: A pytorch dataloader, with sample dimensions (B, D, H, W), \
                 containing normal images.
+            extractions: Number of extractions from dataloader. Could be of interest \
+                when applying random augmentations.
 
         """
-
-        embedding_vectors = self.embeddings_extractor.from_dataloader(
-            dataloader,
-            channel_indices=self.channel_indices,
-            layer_hook=self.layer_hook,
-            layer_indices=self.layer_indices
-        )
+        
+        embedding_vectors = None
+        for i in range(extractions):
+            extracted_embedding_vectors = self.embeddings_extractor.from_dataloader(
+                dataloader,
+                channel_indices=self.channel_indices,
+                layer_hook=self.layer_hook,
+                layer_indices=self.layer_indices
+            )
+            if embedding_vectors is None:
+                embedding_vectors = extracted_embedding_vectors
+            else:
+                embedding_vectors = torch.cat((embedding_vectors, extracted_embedding_vectors), 0)
 
         self.mean = torch.mean(embedding_vectors, dim=0)
         cov = pytorch_cov(embedding_vectors.permute(1, 0, 2), rowvar=False) \
