@@ -7,6 +7,7 @@ import torch
 from torchvision import transforms as T
 from PIL import Image
 import numpy as np
+import os
 
 
 standard_image_transform = T.Compose([T.Resize(224),
@@ -155,3 +156,25 @@ def classification(image_scores: torch.Tensor, thresh: float) -> torch.Tensor:
     image_classifications[image_classifications < thresh] = 1
     image_classifications[image_classifications >= thresh] = 0
     return image_classifications
+
+
+def get_paths_for_directory_path(directory_path: str, limit: int = None):
+    """Get paths for files in a folder.
+
+    Args:
+        directory_path: Path to folder.
+        limit: Specific amount of paths, leave empty for all
+
+    Returns:
+        file_paths: list of paths
+
+    """
+    file_paths = []
+
+    for i, file in enumerate(os.listdir(directory_path)):
+        if limit is not None and i >= limit:
+            break
+        filename = os.fsdecode(file)
+        file_paths.append(os.path.join(directory_path, filename))
+
+    return file_paths
