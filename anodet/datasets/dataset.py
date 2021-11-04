@@ -52,7 +52,7 @@ class AnodetDataset(Dataset):
         # Load mask if mask_directory_path argument is given
         if self.mask_directory_path is not None:
             mask = Image.open(self.mask_paths[idx])
-            mask = self.mask_transforms(image)
+            mask = self.mask_transforms(mask)
             image_classification = 0
         else:
             mask = torch.zeros([1, image.shape[1], image.shape[2]])
