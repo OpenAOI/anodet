@@ -176,6 +176,3 @@ def run_padim_script(dataset_path=os.path.realpath('../../data/pscb/good_cropped
         write_dict_values_to_sheet(result_sheet_path, sheet_info)
 
     return image_classification_target, image_classifications
-
-
-run_padim_script()
