@@ -19,7 +19,8 @@ from torchvision import transforms as T
 import anodet
 
 
-def visual_image_result(test_images, score_map_classifications, image_classifications, score_maps, images, image_scores):
+def visual_image_result(test_images, score_map_classifications, image_classifications, score_maps, images,
+                        image_scores):
     """
     Visual image result with heatmaps
 
@@ -159,7 +160,8 @@ def run_padim_script(dataset_path=os.path.realpath('../../data/pscb/good_cropped
     # Visualize result
     if visualize_result:
         test_images = np.array(images).copy()
-        visual_image_result(test_images, score_map_classifications, image_classifications, score_maps, images, image_scores)
+        visual_image_result(test_images, score_map_classifications, image_classifications, score_maps, images,
+                            image_scores)
         anodet.visualize_eval_pair(image_classification_target, image_classifications)
 
     # Save result to sheet
@@ -169,8 +171,11 @@ def run_padim_script(dataset_path=os.path.realpath('../../data/pscb/good_cropped
         precision, recall, thresholds = anodet.optimal_threshold(image_classification_target,
                                                                  image_classifications)
         sheet_info = {"score_roc_auc": score_roc_auc, "optimal_trest": thresholds, "precision": precision, "recall":
-                      recall, "time": end_time, "backbone": backbone, "tresh": tresh, "extractions": extractions,
+            recall, "time": end_time, "backbone": backbone, "tresh": tresh, "extractions": extractions,
                       "train_images_limit": train_images_limit, "image_transforms": str(image_transforms)}
         write_dict_values_to_sheet(result_sheet_path, sheet_info)
 
     return image_classification_target, image_classifications
+
+
+run_padim_script()
