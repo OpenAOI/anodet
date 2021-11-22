@@ -1,7 +1,7 @@
 import numpy as np
 import torch
-from PIL import Image
 import cv2
+from PIL import Image
 from typing import Union, Tuple, cast, Optional
 
 

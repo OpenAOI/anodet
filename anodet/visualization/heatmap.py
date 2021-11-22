@@ -1,8 +1,7 @@
 import cv2
 import torch
-
-from .utils import (normalize_patch_scores, blend_image, to_numpy)
 import numpy as np
+from .utils import normalize_patch_scores, blend_image, to_numpy
 from typing import Union, Optional
 
 

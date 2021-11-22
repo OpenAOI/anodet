@@ -1,7 +1,7 @@
-from .utils import to_numpy, blend_image
-from typing import Union, Tuple
 import torch
 import numpy as np
+from .utils import to_numpy, blend_image
+from typing import Union, Tuple
 
 
 def highlighted_images(images: Union[np.ndarray, torch.Tensor],

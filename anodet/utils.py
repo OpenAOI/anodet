@@ -2,11 +2,11 @@
 Provides utility functions for anomaly detection.
 """
 
-from typing import List
+import numpy as np
 import torch
+from typing import List
 from torchvision import transforms as T
 from PIL import Image
-import numpy as np
 
 
 standard_image_transform = T.Compose([T.Resize(224),

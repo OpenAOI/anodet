@@ -1,9 +1,10 @@
 import numpy as np
+import torch
 from skimage.segmentation import find_boundaries
 from .utils import composite_image, to_numpy
 from typing import Union, Tuple
 from .frame import frame_by_anomalies
-import torch
+
 
 
 def framed_boundary_images(images: Union[np.ndarray, torch.Tensor],

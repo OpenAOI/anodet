@@ -4,12 +4,12 @@ Provides classes and functions for working with PaDiM.
 
 import math
 import random
-from typing import Optional, Callable, List, Tuple
 import torch
-from torchvision import transforms as T
 import torch.nn.functional as F
-from tqdm import tqdm
 import numpy as np
+from torchvision import transforms as T
+from tqdm import tqdm
+from typing import Optional, Callable, List, Tuple
 from .feature_extraction import ResnetEmbeddingsExtractor
 from .utils import pytorch_cov, mahalanobis
 
