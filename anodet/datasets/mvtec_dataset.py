@@ -1,6 +1,6 @@
 import os
-from PIL import Image
 import torch
+from PIL import Image
 from torch.utils.data import Dataset
 from ..utils import standard_image_transform, standard_mask_transform
 

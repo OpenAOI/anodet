@@ -23,11 +23,10 @@ Can be extended to a robust k centers algorithm that ignores a certain number of
 outlier datapoints.  Resulting centers are solution to multiple integer program.
 """
 
+import numpy as np
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-
-import numpy as np
 from sklearn.metrics import pairwise_distances
 from .sampling_def import SamplingMethod
 

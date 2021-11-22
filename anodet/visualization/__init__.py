@@ -13,14 +13,10 @@ from .heatmap import (
     heatmap_images
 )
 
-from .highlight import (
-    highlighted_images,
-    highlighted_image
-)
+from .highlight import highlighted_images, highlighted_image
 
-from .frame import (
-    frame_by_anomalies
-)
+
+from .frame import frame_by_anomalies
 
 from .utils import (
     merge_images,

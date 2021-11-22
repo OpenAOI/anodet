@@ -1,7 +1,7 @@
 import os
+import torch
 from typing import Optional
 from PIL import Image
-import torch
 from torch.utils.data import Dataset
 from torchvision import transforms as T
 from ..utils import standard_image_transform, standard_mask_transform

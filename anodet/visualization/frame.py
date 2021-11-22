@@ -1,8 +1,7 @@
 import numpy as np
-from typing import Union, Tuple
 import torch
 import cv2
-
+from typing import Union, Tuple
 from .utils import to_numpy, frame_image
 
 
