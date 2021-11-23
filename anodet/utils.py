@@ -155,3 +155,21 @@ def classification(image_scores: torch.Tensor, thresh: float) -> torch.Tensor:
     image_classifications[image_classifications < thresh] = 1
     image_classifications[image_classifications >= thresh] = 0
     return image_classifications
+
+
+def rename_files(path: str):
+    """Rename all files in directory path with increasing integer name.
+    Ex. 001.png, 002.png ...
+
+    Args:
+        directory_path: Path to folder.
+
+    """
+    new_name = 1
+    for file in os.listdir(path):
+        file_source = path + "\\" + file
+        _, file_extension = os.path.splitext(file_source)
+        destination = path + "\\" + str(new_name).zfill(3) + file_extension
+
+        os.rename(file_source, destination)
+        new_name += 1
