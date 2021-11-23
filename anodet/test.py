@@ -156,11 +156,11 @@ def run_padim_test(backbone: str = 'resnet34',
     end_time = strftime("%H:%M:%S", gmtime(end_time))
 
     # Print score and arguments
-    roc_auc_score = roc_auc_score(image_classification_target,
+    score_roc_auc = roc_auc_score(image_classification_target,
                                   image_classifications)
     precision, recall, thresholds = anodet.optimal_threshold(image_classification_target,
                                                              image_classifications)
-    result = {"roc_auc_score": roc_auc_score, "optimal_trest": thresholds, "precision": precision, "recall":
+    result = {"roc_auc_score": score_roc_auc, "optimal_trest": thresholds, "precision": precision, "recall":
               recall, "time": end_time, "backbone": backbone, "tresh": tresh, "extractions": extractions,
               "train_images_limit": train_images_limit, "image_transforms": str(image_transforms)}
     print("Padim script completed with results: ", result)
