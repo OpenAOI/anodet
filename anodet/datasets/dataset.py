@@ -16,7 +16,8 @@ class AnodetDataset(Dataset):
     def __init__(self, image_directory_path: str,
                  mask_directory_path: Optional[str] = None,
                  image_transforms: T.Compose = standard_image_transform,
-                 mask_transforms: T.Compose = standard_mask_transform) -> None:
+                 mask_transforms: T.Compose = standard_mask_transform,
+                 images_limit=None) -> None:
 
         self.image_transforms = image_transforms
         self.mask_transforms = mask_transforms
@@ -24,7 +25,9 @@ class AnodetDataset(Dataset):
         # Load image paths
         self.image_directory_path = image_directory_path
         self.image_paths = []
-        for file in os.listdir(self.image_directory_path):
+        for i, file in enumerate(os.listdir(self.image_directory_path)):
+            if images_limit is not None and i >= images_limit:
+                break
             filename = os.fsdecode(file)
             if allowed_file(filename):
                 self.image_paths.append(os.path.join(self.image_directory_path, filename))
