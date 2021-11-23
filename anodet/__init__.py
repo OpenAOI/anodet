@@ -3,13 +3,14 @@ Provides functions for performing anomaly detection in images.
 """
 
 from .utils import (
-    to_batch, 
-    pytorch_cov, 
+    to_batch,
+    pytorch_cov,
     mahalanobis,
-    standard_image_transform, 
-    standard_mask_transform, 
-    image_score, 
-    classification)
+    standard_image_transform,
+    standard_mask_transform,
+    image_score,
+    classification,
+    get_paths_for_directory_path)
 
 from .feature_extraction import ResnetEmbeddingsExtractor
 
