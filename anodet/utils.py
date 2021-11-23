@@ -7,6 +7,7 @@ import torch
 from typing import List
 from torchvision import transforms as T
 from PIL import Image
+import os
 
 
 standard_image_transform = T.Compose([T.Resize(224),
