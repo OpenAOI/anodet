@@ -157,8 +157,8 @@ def classification(image_scores: torch.Tensor, thresh: float) -> torch.Tensor:
     return image_classifications
 
 
-def split_tensor_and_run_function(func: Callable, tensor: torch.Tensor, \
-    split_size: int or List) -> List[torch.Tensor]:
+def split_tensor_and_run_function(func: Callable[[torch.Tensor], List],
+    tensor: torch.Tensor, split_size: int or List) -> List[torch.Tensor]:
     """Splits the tensor into chunks in given split_size and run a function on each chunk.
 
     Args:
