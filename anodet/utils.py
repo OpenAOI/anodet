@@ -4,7 +4,7 @@ Provides utility functions for anomaly detection.
 
 import numpy as np
 import torch
-from typing import List
+from typing import List, Callable, Union
 from torchvision import transforms as T
 from PIL import Image
 
@@ -155,3 +155,28 @@ def classification(image_scores: torch.Tensor, thresh: float) -> torch.Tensor:
     image_classifications[image_classifications < thresh] = 1
     image_classifications[image_classifications >= thresh] = 0
     return image_classifications
+
+
+def split_tensor_and_run_function(
+            func: Callable[[torch.Tensor], List],
+            tensor: torch.Tensor,
+            split_size: Union[int, List]
+        ) -> torch.Tensor:
+    """Splits the tensor into chunks in given split_size and run a function on each chunk.
+
+    Args:
+        func: Function to be run on a chunk of tensor.
+        tensor: Tensor to split.
+        split_size: Size of a single chunk or list of sizes for each chunk.
+
+    Returns:
+        output_tensor: Tensor of same size as input tensor
+
+    """
+    tensors_list = []
+    for sub_tensor in torch.split(tensor, split_size):
+        tensors_list.append(func(sub_tensor))
+
+    output_tensor = torch.cat(tensors_list)
+
+    return output_tensor
