@@ -104,12 +104,10 @@ class Padim:
         self.mean = torch.mean(embedding_vectors, dim=0)
         cov = pytorch_cov(embedding_vectors.permute(1, 0, 2), rowvar=False) \
             + 0.01 * torch.eye(embedding_vectors.shape[2])
-        # Run inverse function on splitted tensor to save ram memomry
-        inversed_tensors = split_tensor_and_run_function(func=torch.inverse,
-                                                         tensor=cov,
-                                                         split_size=2)
-        self.cov_inv = torch.cat(inversed_tensors)
-
+        # Run inverse function on splitted tensor to save ram memory
+        self.cov_inv = split_tensor_and_run_function(func=torch.inverse,
+                                                     tensor=cov,
+                                                     split_size=1)
 
     def predict(self, batch: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """Make a prediction on test images.
