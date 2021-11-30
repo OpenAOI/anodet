@@ -7,16 +7,14 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import roc_auc_score
 from sklearn.metrics import roc_curve
 from sklearn.metrics import precision_recall_curve
-from typing import Tuple, Any
+
 import cv2
 import torch
 from torch.utils.data import DataLoader
 from torchvision import transforms as T
 
-import os
-import time
-from time import gmtime
-from time import strftime
+from typing import Tuple, Any
+from time import time, gmtime, strftime
 
 import anodet
 
@@ -69,26 +67,33 @@ def optimal_threshold(target: np.ndarray, prediction: np.ndarray) -> Tuple[Any, 
     return precision[idx], recall[idx], thresholds[idx]
 
 
-def run_padim_test(backbone: str = 'resnet34',
-                     tresh: int = 13,
-                     extractions: int = 1,
-                     batch_size: int = 32,
-                     train_images_limit=None,
-                     test_good_images_limit=None,
-                     test_bad_images_limit=None,
-                     image_transforms: T.Compose = T.Compose([T.Resize(224),
-                                                              T.CenterCrop(224),
-                                                              T.ToTensor(),
-                                                              T.Normalize(mean=[0.485, 0.456, 0.406],
-                                                                          std=[0.229, 0.224, 0.225])
-                                                              ])
-                     ):
+def run_padim_test(
+            dataset_path: str,
+            test_good_images_path: str,
+            test_bad_images_path: str,
+            backbone: str = 'resnet18',
+            tresh: int = 13,
+            extractions: int = 1,
+            batch_size: int = 32,
+            train_images_limit=None,
+            test_good_images_limit=None,
+            test_bad_images_limit=None,
+            image_transforms: T.Compose = T.Compose([T.Resize(224),
+                                                     T.CenterCrop(224),
+                                                     T.ToTensor(),
+                                                     T.Normalize(mean=[0.485, 0.456, 0.406],
+                                                                 std=[0.229, 0.224, 0.225])
+                                                    ])
+        ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Script to run Padim model using AnodetDataset.
 
         Args:
+            dataset_path: Directory path for images to train.
+            test_good_images_path: Directory path for good images to predict.
+            test_bad_images_path: Directory path for bad images to predict.
             backbone: The name of the desired backbone. Must be one of: [resnet18, resnet34 \
-            wide_resnet50]
+            wide_resnet50].
             tresh: A treshold value. If an image score is larger than
                 or equal to thresh it is classified as anomalous.
             extractions: Number of extractions from dataloader. Could be of interest \
@@ -104,13 +109,8 @@ def run_padim_test(backbone: str = 'resnet34',
             image_classifications: Numpy array with predicted image classifcations.
 
     """
-    # Paths
-    dataset_path = os.path.realpath('../../data/pscb/good_cropped_masked')
-    test_good_images_path = os.path.realpath('../../data/pscb/test_good_cropped_masked')
-    test_bad_images_path = os.path.realpath('../../data/pscb/bad_cropped_masked')
-
     # Start time
-    start_time = time.time()
+    start_time = time()
 
     # Load dataset
     dataset = anodet.AnodetDataset(image_directory_path=dataset_path,
@@ -152,7 +152,7 @@ def run_padim_test(backbone: str = 'resnet34',
     image_classifications = image_classifications.numpy()
 
     # Calculate time
-    end_time = time.time() - start_time
+    end_time = time() - start_time
     end_time = strftime("%H:%M:%S", gmtime(end_time))
 
     # Print score and arguments
