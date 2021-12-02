@@ -11,7 +11,7 @@ from torchvision import transforms as T
 from tqdm import tqdm
 from typing import Optional, Callable, List, Tuple
 from .feature_extraction import ResnetEmbeddingsExtractor
-from .utils import pytorch_cov, mahalanobis
+from .utils import pytorch_cov, mahalanobis, split_tensor_and_run_function
 
 
 class Padim:
@@ -88,7 +88,6 @@ class Padim:
                 when applying random augmentations.
 
         """
-        
         embedding_vectors = None
         for i in range(extractions):
             extracted_embedding_vectors = self.embeddings_extractor.from_dataloader(
@@ -105,7 +104,10 @@ class Padim:
         self.mean = torch.mean(embedding_vectors, dim=0)
         cov = pytorch_cov(embedding_vectors.permute(1, 0, 2), rowvar=False) \
             + 0.01 * torch.eye(embedding_vectors.shape[2])
-        self.cov_inv = torch.inverse(cov)
+        # Run inverse function on splitted tensor to save ram memory
+        self.cov_inv = split_tensor_and_run_function(func=torch.inverse,
+                                                     tensor=cov,
+                                                     split_size=1)
 
     def predict(self, batch: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """Make a prediction on test images.
