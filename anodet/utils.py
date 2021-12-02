@@ -158,11 +158,11 @@ def classification(image_scores: torch.Tensor, thresh: float) -> torch.Tensor:
     return image_classifications
 
 def rename_files(
-        source_path: str,
-        destination_path: Optional[str] = None
-    ):
+            source_path: str,
+            destination_path: Optional[str] = None
+        ) -> None:
     """Rename all files in a directory path with increasing integer name.
-    Ex. 001.png, 002.png ...
+    Ex. 0001.png, 0002.png ...
     Write files to destination path if argument is given.
 
     Args:
@@ -174,7 +174,7 @@ def rename_files(
         file_source_path = os.path.join(source_path, filename)
         file_extension = os.path.splitext(filename)[1]
 
-        new_name = str(count).zfill(3) + file_extension
+        new_name = str(count).zfill(4) + file_extension
         if destination_path:
             new_destination = os.path.join(destination_path, new_name)
         else:
