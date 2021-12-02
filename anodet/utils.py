@@ -4,9 +4,10 @@ Provides utility functions for anomaly detection.
 
 import numpy as np
 import torch
-from typing import List, Callable, Union
+from typing import List, Optional, Callable, Union
 from torchvision import transforms as T
 from PIL import Image
+import os
 
 
 standard_image_transform = T.Compose([T.Resize(224),
@@ -155,6 +156,32 @@ def classification(image_scores: torch.Tensor, thresh: float) -> torch.Tensor:
     image_classifications[image_classifications < thresh] = 1
     image_classifications[image_classifications >= thresh] = 0
     return image_classifications
+
+ 
+def rename_files(
+            source_path: str,
+            destination_path: Optional[str] = None
+        ) -> None:
+    """Rename all files in a directory path with increasing integer name.
+    Ex. 0001.png, 0002.png ...
+    Write files to destination path if argument is given.
+
+    Args:
+        source_path: Path to folder.
+        destination_path: Path to folder.
+
+    """
+    for count, filename in enumerate(os.listdir(source_path), 1):
+        file_source_path = os.path.join(source_path, filename)
+        file_extension = os.path.splitext(filename)[1]
+
+        new_name = str(count).zfill(4) + file_extension
+        if destination_path:
+            new_destination = os.path.join(destination_path, new_name)
+        else:
+            new_destination = os.path.join(source_path, new_name)
+
+        os.rename(file_source_path, new_destination)
 
 
 def split_tensor_and_run_function(
