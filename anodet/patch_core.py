@@ -14,11 +14,49 @@ from tqdm import tqdm
 from .sampling_methods.kcenter_greedy import kCenterGreedy
 from .feature_extraction import ResnetEmbeddingsExtractor
 
+class NN():
+
+    def __init__(self, X=None, Y=None, p=2):
+        self.p = p
+        self.train(X, Y)
+
+    def train(self, X, Y):
+        self.train_pts = X
+        self.train_label = Y
+
+    def __call__(self, x):
+        return self.predict(x)
+
+    def predict(self, x):
+        if type(self.train_pts) == type(None) or type(self.train_label) == type(None):
+            name = self.__class__.__name__
+            raise RuntimeError(f"{name} wasn't trained. Need to execute {name}.train() first")
+
+        dist = torch.cdist(x, self.train_pts, self.p)
+        labels = torch.argmin(dist, dim=1)
+        return self.train_label[labels]
+
+class KNN(NN):
+
+    def __init__(self, X=None, Y=None, k=3, p=2):
+        self.k = k
+        super().__init__(X, Y, p)
+
+    def train(self, X, Y):
+        super().train(X, Y)
+        if type(Y) != type(None):
+            self.unique_labels = self.train_label.unique()
+
+    def predict(self, x):
+        dist = torch.cdist(x, self.train_pts, self.p)
+        knn = dist.topk(self.k, largest=False)
+        return knn
+
 
 class PatchCore:
     """A PatchCore model with functions to train and perform inference."""
 
-    def __init__(self, backbone: str = 'resnet18',
+    def __init__(self, backbone: str = 'wide_resnet50',
                  device: torch.device = torch.device('cpu'),
                  embedding_coreset: Optional[torch.Tensor] = None,
                  channel_indices: Optional[torch.Tensor] = None,
@@ -92,18 +130,18 @@ class PatchCore:
 
         randomprojector = SparseRandomProjection(n_components='auto', eps=0.9)
         randomprojector.fit(embedding_vectors)
-
+        # Coreset subsampling
         selector = kCenterGreedy(embedding_vectors, 0, 0)
         selected_idx = selector.select_batch(model=randomprojector, already_selected=[],
                                              N=int(embedding_vectors.shape[0]*sampling_ratio))
 
         self.embedding_coreset = embedding_vectors[selected_idx]
+        print('initial embedding size : ', embedding_vectors.shape)
+        print('final embedding size : ', self.embedding_coreset.shape)
 
     def predict(self,
                 batch: torch.Tensor,
                 n_neighbors: int = 9,
-                nn_algorithm: str = "ball_tree",
-                nn_metric: str = "minkowski",
                 apply_gaussian: bool = True,
                 apply_resize: bool = True
                 ) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -133,16 +171,14 @@ class PatchCore:
                                                       layer_indices=self.layer_indices
                                                       )
 
-        nbrs = NearestNeighbors(n_neighbors=n_neighbors, algorithm=nn_algorithm,
-                                metric=nn_metric, p=2).fit(self.embedding_coreset)
-
+        knn = KNN(torch.from_numpy(self.embedding_coreset).to(str(self.device)), k=n_neighbors)
         patch_width = int(math.sqrt(embedding_vectors.shape[1]))
         score_maps = torch.zeros((embedding_vectors.shape[0], batch.shape[2], batch.shape[2]))
 
         image_scores = torch.zeros(embedding_vectors.shape[0])
 
         for i in range(embedding_vectors.shape[0]):
-            patch_score, _ = nbrs.kneighbors(embedding_vectors[i].cpu().numpy())
+            patch_score = knn(embedding_vectors[i])[0].cpu().detach().numpy()
             score_map = patch_score[:, 0].reshape((patch_width, patch_width))
 
             N_b = patch_score[np.argmax(patch_score[:, 0])]
