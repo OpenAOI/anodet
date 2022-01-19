@@ -139,6 +139,7 @@ class PatchCore:
         print('initial embedding size : ', embedding_vectors.shape)
         print('final embedding size : ', self.embedding_coreset.shape)
 
+
     def predict(self,
                 batch: torch.Tensor,
                 n_neighbors: int = 9,
@@ -171,7 +172,7 @@ class PatchCore:
                                                       layer_indices=self.layer_indices
                                                       )
 
-        knn = KNN(torch.from_numpy(self.embedding_coreset).to(str(self.device)), k=n_neighbors)
+        knn = KNN(torch.from_numpy(self.embedding_coreset).to(self.device), k=n_neighbors)
         patch_width = int(math.sqrt(embedding_vectors.shape[1]))
         score_maps = torch.zeros((embedding_vectors.shape[0], batch.shape[2], batch.shape[2]))
 
