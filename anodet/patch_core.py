@@ -3,6 +3,8 @@ Provides classes and functions for working with PatchCore.
 """
 
 import math
+
+import faiss
 import torch
 import numpy as np
 import cv2
@@ -125,8 +127,7 @@ class PatchCore:
         )
 
         batch_length, vector_num, channel_num = embedding_vectors.shape
-        embedding_vectors = embedding_vectors.reshape(batch_length*vector_num,
-                                                      channel_num).cpu().numpy()
+        embedding_vectors = embedding_vectors.reshape(batch_length*vector_num, channel_num).cpu().numpy()
 
         randomprojector = SparseRandomProjection(n_components='auto', eps=0.9)
         randomprojector.fit(embedding_vectors)
@@ -153,7 +154,6 @@ class PatchCore:
             batch: A batch of test images, with dimension (B, D, h, w).
             n_neighbors: See documentation of sklearn.neighbors.NearestNeighbors.
             nn_metric: See documentation of sklearn.neighbors.NearestNeighbors.
-            nn_metric: See documentation of sklearn.neighbors.NearestNeighbors.
             apply_gaussian: If true apply gaussian blur on score map.
             apply_resize: If true resize the score_map to size of images in batch.
 
@@ -165,7 +165,7 @@ class PatchCore:
 
         assert self.embedding_coreset is not None, \
             "The model must be fitted or provided with embedding_coreset"
-
+        batch = batch.to(self.device)
         embedding_vectors = self.embeddings_extractor(batch,
                                                       channel_indices=self.channel_indices,
                                                       layer_hook=self.layer_hook,
@@ -197,8 +197,6 @@ class PatchCore:
     def evaluate(self,
                  dataloader: torch.utils.data.DataLoader,
                  n_neighbors: int = 9,
-                 nn_algorithm: str = "ball_tree",
-                 nn_metric: str = "minkowski",
                  apply_gaussian: bool = True,
                  apply_resize: bool = True
                  ):
@@ -234,8 +232,6 @@ class PatchCore:
             batch_image_scores, batch_score_maps = \
                 self.predict(batch,
                              n_neighbors,
-                             nn_algorithm,
-                             nn_metric,
                              apply_gaussian,
                              apply_resize
                              )

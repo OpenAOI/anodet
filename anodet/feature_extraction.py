@@ -109,7 +109,7 @@ class ResnetEmbeddingsExtractor(torch.nn.Module):
         """Same as self.forward but take a dataloader instead of a tensor as argument."""
 
         embedding_vectors: Optional[torch.Tensor] = None
-
+        device = self.device
         for (batch, _, _) in tqdm(dataloader, 'Feature extraction'):
             batch = batch.to(self.device)
             batch_embedding_vectors = self(batch,

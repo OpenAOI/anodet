@@ -10,20 +10,20 @@ from PIL import Image
 import os
 
 
-standard_image_transform = T.Compose([T.Resize(224),
+standard_image_transform = T.Compose([T.Resize(256, T.InterpolationMode.LANCZOS),
                                       T.CenterCrop(224),
                                       T.ToTensor(),
                                       T.Normalize(mean=[0.485, 0.456, 0.406],
                                                   std=[0.229, 0.224, 0.225])
                                       ])
 
-standard_mask_transform = T.Compose([T.Resize(224),
+standard_mask_transform = T.Compose([T.Resize(256),
                                      T.CenterCrop(224),
                                      T.ToTensor()
                                      ])
 
 
-def to_batch(images: List[np.ndarray], transforms: T.Compose, device: torch.device) -> torch.Tensor:
+def to_batch(images: List[np.ndarray], transforms: T.Compose) -> torch.Tensor:
     """Convert a list of numpy array images to a pytorch tensor batch with given transforms."""
     assert len(images) > 0
 
@@ -38,7 +38,7 @@ def to_batch(images: List[np.ndarray], transforms: T.Compose, device: torch.devi
     for i, transformed_image in enumerate(transformed_images):
         batch[i] = transformed_image
 
-    return batch.to(device)
+    return batch
 
 
 # From: https://github.com/pytorch/pytorch/issues/19037
