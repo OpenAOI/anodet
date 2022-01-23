@@ -79,8 +79,7 @@ class PatchCore:
             layer_hook: A function that can modify the layers during extraction.
         """
 
-        self.device = device
-        self.embeddings_extractor = ResnetEmbeddingsExtractor(backbone, self.device)
+        self.embeddings_extractor = ResnetEmbeddingsExtractor(backbone, device)
         self.embedding_coreset = embedding_coreset
         self.channel_indices = channel_indices
 
@@ -92,7 +91,7 @@ class PatchCore:
         if self.layer_hook is None:
             self.layer_hook = torch.nn.AvgPool2d(3, 1, 1)
 
-        self.to_device(self.device)
+        self.to_device(device)
 
     def to_device(self, device: torch.device) -> None:
         """Perform device conversion on backone, mean, cov_inv and channel_indices
@@ -102,7 +101,6 @@ class PatchCore:
 
         """
 
-        self.device = device
         if self.embeddings_extractor is not None:
             self.embeddings_extractor.to_device(device)
         if self.channel_indices is not None:
@@ -165,14 +163,14 @@ class PatchCore:
 
         assert self.embedding_coreset is not None, \
             "The model must be fitted or provided with embedding_coreset"
-        batch = batch.to(self.device)
+        batch = batch.to(self.embeddings_extractor.device)
         embedding_vectors = self.embeddings_extractor(batch,
                                                       channel_indices=self.channel_indices,
                                                       layer_hook=self.layer_hook,
                                                       layer_indices=self.layer_indices
                                                       )
 
-        knn = KNN(torch.from_numpy(self.embedding_coreset).to(self.device), k=n_neighbors)
+        knn = KNN(torch.from_numpy(self.embedding_coreset).to(self.embeddings_extractor.device), k=n_neighbors)
         patch_width = int(math.sqrt(embedding_vectors.shape[1]))
         score_maps = torch.zeros((embedding_vectors.shape[0], batch.shape[2], batch.shape[2]))
 
@@ -183,7 +181,9 @@ class PatchCore:
             score_map = patch_score[:, 0].reshape((patch_width, patch_width))
 
             N_b = patch_score[np.argmax(patch_score[:, 0])]
-            w = (1 - (np.max(np.exp(N_b))/np.sum(np.exp(N_b))))
+            # w = (1 - (np.min(np.exp(N_b))/np.sum(np.exp(N_b))))
+            w = (1 - (np.exp(N_b[0]) / np.sum(np.exp(N_b))))
+
             image_scores[i] = w*max(patch_score[:, 0])
 
             if apply_resize:
