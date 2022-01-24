@@ -4,56 +4,29 @@ Provides classes and functions for working with PatchCore.
 
 import math
 
-import faiss
 import torch
 import numpy as np
 import cv2
 from sklearn.random_projection import SparseRandomProjection
-from sklearn.neighbors import NearestNeighbors
 from scipy.ndimage import gaussian_filter
 from typing import Optional, Callable, List, Tuple
 from tqdm import tqdm
 from .sampling_methods.kcenter_greedy import kCenterGreedy
 from .feature_extraction import ResnetEmbeddingsExtractor
 
-class NN():
 
-    def __init__(self, X=None, Y=None, p=2):
-        self.p = p
-        self.train(X, Y)
+class KNN():
+    """K-nearest neightbor"""
 
-    def train(self, X, Y):
+    def __init__(self, X, p=3):
+        assert X is not None
         self.train_pts = X
-        self.train_label = Y
+        self.p = p
 
     def __call__(self, x):
-        return self.predict(x)
-
-    def predict(self, x):
-        if type(self.train_pts) == type(None) or type(self.train_label) == type(None):
-            name = self.__class__.__name__
-            raise RuntimeError(f"{name} wasn't trained. Need to execute {name}.train() first")
-
-        dist = torch.cdist(x, self.train_pts, self.p)
-        labels = torch.argmin(dist, dim=1)
-        return self.train_label[labels]
-
-class KNN(NN):
-
-    def __init__(self, X=None, Y=None, k=3, p=2):
-        self.k = k
-        super().__init__(X, Y, p)
-
-    def train(self, X, Y):
-        super().train(X, Y)
-        if type(Y) != type(None):
-            self.unique_labels = self.train_label.unique()
-
-    def predict(self, x):
-        dist = torch.cdist(x, self.train_pts, self.p)
-        knn = dist.topk(self.k, largest=False)
+        dist = torch.cdist(x, self.train_pts, 2)
+        knn = dist.topk(self.p, largest=False)
         return knn
-
 
 class PatchCore:
     """A PatchCore model with functions to train and perform inference."""
@@ -91,20 +64,10 @@ class PatchCore:
         if self.layer_hook is None:
             self.layer_hook = torch.nn.AvgPool2d(3, 1, 1)
 
-        self.to_device(device)
-
-    def to_device(self, device: torch.device) -> None:
-        """Perform device conversion on backone, mean, cov_inv and channel_indices
-
-        Args:
-            device: The device where to run the model.
-
-        """
-
-        if self.embeddings_extractor is not None:
-            self.embeddings_extractor.to_device(device)
+        self.embeddings_extractor.to(device)
         if self.channel_indices is not None:
             self.channel_indices = self.channel_indices.to(device)
+
 
     def fit(self, dataloader: torch.utils.data.DataLoader,
             sampling_ratio: float = 0.001) -> None:
@@ -114,7 +77,7 @@ class PatchCore:
         Args:
             dataloader: A pytorch dataloader, with sample dimensions (B, D, H, W), \
                 containing normal images.
-
+            sampling_ratio: level subsample
         """
 
         embedding_vectors = self.embeddings_extractor.from_dataloader(
@@ -141,7 +104,7 @@ class PatchCore:
 
     def predict(self,
                 batch: torch.Tensor,
-                n_neighbors: int = 9,
+                n_size: int = 3,
                 apply_gaussian: bool = True,
                 apply_resize: bool = True
                 ) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -150,8 +113,7 @@ class PatchCore:
 
         Args:
             batch: A batch of test images, with dimension (B, D, h, w).
-            n_neighbors: See documentation of sklearn.neighbors.NearestNeighbors.
-            nn_metric: See documentation of sklearn.neighbors.NearestNeighbors.
+            n_size: Neighborhood sizes.
             apply_gaussian: If true apply gaussian blur on score map.
             apply_resize: If true resize the score_map to size of images in batch.
 
@@ -170,7 +132,7 @@ class PatchCore:
                                                       layer_indices=self.layer_indices
                                                       )
 
-        knn = KNN(torch.from_numpy(self.embedding_coreset).to(self.embeddings_extractor.device), k=n_neighbors)
+        knn = KNN(torch.from_numpy(self.embedding_coreset).to(self.embeddings_extractor.device), p=n_size)
         patch_width = int(math.sqrt(embedding_vectors.shape[1]))
         score_maps = torch.zeros((embedding_vectors.shape[0], batch.shape[2], batch.shape[2]))
 
@@ -181,8 +143,7 @@ class PatchCore:
             score_map = patch_score[:, 0].reshape((patch_width, patch_width))
 
             N_b = patch_score[np.argmax(patch_score[:, 0])]
-            # w = (1 - (np.min(np.exp(N_b))/np.sum(np.exp(N_b))))
-            w = (1 - (np.exp(N_b[0]) / np.sum(np.exp(N_b))))
+            w = (1 - (np.exp(N_b[0]) / np.sum(np.exp(N_b)))) # eq. 7 in the paper
 
             image_scores[i] = w*max(patch_score[:, 0])
 
@@ -196,7 +157,7 @@ class PatchCore:
 
     def evaluate(self,
                  dataloader: torch.utils.data.DataLoader,
-                 n_neighbors: int = 9,
+                 n_size: int = 9,
                  apply_gaussian: bool = True,
                  apply_resize: bool = True
                  ):
@@ -206,9 +167,7 @@ class PatchCore:
         Args:
             dataloader: A pytorch dataloader, with sample dimensions (B, D, H, W), \
                 containing normal images.
-            n_neighbors: See documentation of sklearn.neighbors.NearestNeighbors.
-            nn_metric: See documentation of sklearn.neighbors.NearestNeighbors.
-            nn_metric: See documentation of sklearn.neighbors.NearestNeighbors.
+            n_size: neighborhood sizes
             apply_gaussian: If true apply gaussian blur on score map.
             apply_resize: If true resize the score_map to size of images in batch.
 
@@ -231,7 +190,7 @@ class PatchCore:
         for (batch, image_classifications, masks) in tqdm(dataloader, 'Inference'):
             batch_image_scores, batch_score_maps = \
                 self.predict(batch,
-                             n_neighbors,
+                             n_size,
                              apply_gaussian,
                              apply_resize
                              )

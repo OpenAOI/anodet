@@ -41,14 +41,6 @@ class ResnetEmbeddingsExtractor(torch.nn.Module):
         self.eval()
         self.device = device
 
-    def to_device(self, device: torch.device) -> None:
-        """Perform device conversion on backone
-
-        See pytorch docs for documentation on torch.Tensor.to
-
-        """
-        self.backbone.to(device)
-
     def forward(self,
                 batch: torch.Tensor,
                 channel_indices: Optional[torch.Tensor] = None,
