@@ -3,11 +3,11 @@ Provides classes and functions for working with PatchCore.
 """
 
 import math
+
 import torch
 import numpy as np
 import cv2
 from sklearn.random_projection import SparseRandomProjection
-from sklearn.neighbors import NearestNeighbors
 from scipy.ndimage import gaussian_filter
 from typing import Optional, Callable, List, Tuple
 from tqdm import tqdm
@@ -15,10 +15,23 @@ from .sampling_methods.kcenter_greedy import kCenterGreedy
 from .feature_extraction import ResnetEmbeddingsExtractor
 
 
+class KNN():
+    """K-nearest neightbor"""
+
+    def __init__(self, X, p=3):
+        assert X is not None
+        self.train_pts = X
+        self.p = p
+
+    def __call__(self, x):
+        dist = torch.cdist(x, self.train_pts, 2)
+        knn = dist.topk(self.p, largest=False)
+        return knn
+
 class PatchCore:
     """A PatchCore model with functions to train and perform inference."""
 
-    def __init__(self, backbone: str = 'resnet18',
+    def __init__(self, backbone: str = 'wide_resnet50',
                  device: torch.device = torch.device('cpu'),
                  embedding_coreset: Optional[torch.Tensor] = None,
                  channel_indices: Optional[torch.Tensor] = None,
@@ -39,8 +52,7 @@ class PatchCore:
             layer_hook: A function that can modify the layers during extraction.
         """
 
-        self.device = device
-        self.embeddings_extractor = ResnetEmbeddingsExtractor(backbone, self.device)
+        self.embeddings_extractor = ResnetEmbeddingsExtractor(backbone, device)
         self.embedding_coreset = embedding_coreset
         self.channel_indices = channel_indices
 
@@ -52,21 +64,10 @@ class PatchCore:
         if self.layer_hook is None:
             self.layer_hook = torch.nn.AvgPool2d(3, 1, 1)
 
-        self.to_device(self.device)
-
-    def to_device(self, device: torch.device) -> None:
-        """Perform device conversion on backone, mean, cov_inv and channel_indices
-
-        Args:
-            device: The device where to run the model.
-
-        """
-
-        self.device = device
-        if self.embeddings_extractor is not None:
-            self.embeddings_extractor.to_device(device)
+        self.embeddings_extractor.to(device)
         if self.channel_indices is not None:
             self.channel_indices = self.channel_indices.to(device)
+
 
     def fit(self, dataloader: torch.utils.data.DataLoader,
             sampling_ratio: float = 0.001) -> None:
@@ -76,7 +77,7 @@ class PatchCore:
         Args:
             dataloader: A pytorch dataloader, with sample dimensions (B, D, H, W), \
                 containing normal images.
-
+            sampling_ratio: level subsample
         """
 
         embedding_vectors = self.embeddings_extractor.from_dataloader(
@@ -87,23 +88,23 @@ class PatchCore:
         )
 
         batch_length, vector_num, channel_num = embedding_vectors.shape
-        embedding_vectors = embedding_vectors.reshape(batch_length*vector_num,
-                                                      channel_num).cpu().numpy()
+        embedding_vectors = embedding_vectors.reshape(batch_length*vector_num, channel_num).cpu().numpy()
 
         randomprojector = SparseRandomProjection(n_components='auto', eps=0.9)
         randomprojector.fit(embedding_vectors)
-
+        # Coreset subsampling
         selector = kCenterGreedy(embedding_vectors, 0, 0)
         selected_idx = selector.select_batch(model=randomprojector, already_selected=[],
                                              N=int(embedding_vectors.shape[0]*sampling_ratio))
 
         self.embedding_coreset = embedding_vectors[selected_idx]
+        print('initial embedding size : ', embedding_vectors.shape)
+        print('final embedding size : ', self.embedding_coreset.shape)
+
 
     def predict(self,
                 batch: torch.Tensor,
-                n_neighbors: int = 9,
-                nn_algorithm: str = "ball_tree",
-                nn_metric: str = "minkowski",
+                n_size: int = 3,
                 apply_gaussian: bool = True,
                 apply_resize: bool = True
                 ) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -112,9 +113,7 @@ class PatchCore:
 
         Args:
             batch: A batch of test images, with dimension (B, D, h, w).
-            n_neighbors: See documentation of sklearn.neighbors.NearestNeighbors.
-            nn_metric: See documentation of sklearn.neighbors.NearestNeighbors.
-            nn_metric: See documentation of sklearn.neighbors.NearestNeighbors.
+            n_size: Neighborhood sizes.
             apply_gaussian: If true apply gaussian blur on score map.
             apply_resize: If true resize the score_map to size of images in batch.
 
@@ -126,27 +125,26 @@ class PatchCore:
 
         assert self.embedding_coreset is not None, \
             "The model must be fitted or provided with embedding_coreset"
-
+        batch = batch.to(self.embeddings_extractor.device)
         embedding_vectors = self.embeddings_extractor(batch,
                                                       channel_indices=self.channel_indices,
                                                       layer_hook=self.layer_hook,
                                                       layer_indices=self.layer_indices
                                                       )
 
-        nbrs = NearestNeighbors(n_neighbors=n_neighbors, algorithm=nn_algorithm,
-                                metric=nn_metric, p=2).fit(self.embedding_coreset)
-
+        knn = KNN(torch.from_numpy(self.embedding_coreset).to(self.embeddings_extractor.device), p=n_size)
         patch_width = int(math.sqrt(embedding_vectors.shape[1]))
         score_maps = torch.zeros((embedding_vectors.shape[0], batch.shape[2], batch.shape[2]))
 
         image_scores = torch.zeros(embedding_vectors.shape[0])
 
         for i in range(embedding_vectors.shape[0]):
-            patch_score, _ = nbrs.kneighbors(embedding_vectors[i].cpu().numpy())
+            patch_score = knn(embedding_vectors[i])[0].cpu().detach().numpy()
             score_map = patch_score[:, 0].reshape((patch_width, patch_width))
 
             N_b = patch_score[np.argmax(patch_score[:, 0])]
-            w = (1 - (np.max(np.exp(N_b))/np.sum(np.exp(N_b))))
+            w = (1 - (np.exp(N_b[0]) / np.sum(np.exp(N_b)))) # eq. 7 in the paper
+
             image_scores[i] = w*max(patch_score[:, 0])
 
             if apply_resize:
@@ -159,9 +157,7 @@ class PatchCore:
 
     def evaluate(self,
                  dataloader: torch.utils.data.DataLoader,
-                 n_neighbors: int = 9,
-                 nn_algorithm: str = "ball_tree",
-                 nn_metric: str = "minkowski",
+                 n_size: int = 9,
                  apply_gaussian: bool = True,
                  apply_resize: bool = True
                  ):
@@ -171,9 +167,7 @@ class PatchCore:
         Args:
             dataloader: A pytorch dataloader, with sample dimensions (B, D, H, W), \
                 containing normal images.
-            n_neighbors: See documentation of sklearn.neighbors.NearestNeighbors.
-            nn_metric: See documentation of sklearn.neighbors.NearestNeighbors.
-            nn_metric: See documentation of sklearn.neighbors.NearestNeighbors.
+            n_size: neighborhood sizes
             apply_gaussian: If true apply gaussian blur on score map.
             apply_resize: If true resize the score_map to size of images in batch.
 
@@ -196,9 +190,7 @@ class PatchCore:
         for (batch, image_classifications, masks) in tqdm(dataloader, 'Inference'):
             batch_image_scores, batch_score_maps = \
                 self.predict(batch,
-                             n_neighbors,
-                             nn_algorithm,
-                             nn_metric,
+                             n_size,
                              apply_gaussian,
                              apply_resize
                              )

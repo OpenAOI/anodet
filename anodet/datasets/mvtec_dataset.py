@@ -55,7 +55,6 @@ class MVTecDataset(Dataset):
 
         img_types = sorted(os.listdir(img_dir))
         for img_type in img_types:
-
             # load images
             img_type_dir = os.path.join(img_dir, img_type)
             if not os.path.isdir(img_type_dir):

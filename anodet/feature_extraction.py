@@ -39,14 +39,7 @@ class ResnetEmbeddingsExtractor(torch.nn.Module):
         self.backbone.to(device)
         self.backbone.eval()
         self.eval()
-
-    def to_device(self, device: torch.device) -> None:
-        """Perform device conversion on backone
-
-        See pytorch docs for documentation on torch.Tensor.to
-
-        """
-        self.backbone.to(device)
+        self.device = device
 
     def forward(self,
                 batch: torch.Tensor,
@@ -108,9 +101,8 @@ class ResnetEmbeddingsExtractor(torch.nn.Module):
         """Same as self.forward but take a dataloader instead of a tensor as argument."""
 
         embedding_vectors: Optional[torch.Tensor] = None
-
         for (batch, _, _) in tqdm(dataloader, 'Feature extraction'):
-
+            batch = batch.to(self.device)
             batch_embedding_vectors = self(batch,
                                            channel_indices=channel_indices,
                                            layer_hook=layer_hook,

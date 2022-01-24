@@ -2,7 +2,7 @@ import os
 import torch
 from typing import Optional
 from PIL import Image
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms as T
 from ..utils import standard_image_transform, standard_mask_transform
 
@@ -59,3 +59,6 @@ class AnodetDataset(Dataset):
             image_classification = 1
 
         return image, image_classification, mask
+
+    def get_dataloader(self, batch_size = 32, num_workers = 8):
+        return DataLoader(self, batch_size=batch_size, num_workers=num_workers)
