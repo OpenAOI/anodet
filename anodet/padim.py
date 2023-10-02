@@ -109,7 +109,7 @@ class Padim:
                                                      tensor=cov,
                                                      split_size=1)
 
-    def predict(self, batch: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def predict(self, batch: torch.Tensor, gaussian_blur: bool = True) -> Tuple[torch.Tensor, torch.Tensor]:
         """Make a prediction on test images.
 
         Args:
@@ -137,9 +137,13 @@ class Padim:
 
         score_map = F.interpolate(patch_scores.unsqueeze(1), size=batch.shape[2],
                                   mode='bilinear', align_corners=False).squeeze()
+
+
         if batch.shape[0] == 1:
             score_map = score_map.unsqueeze(0)
-        score_map = T.GaussianBlur(33, sigma=4)(score_map)
+
+        if gaussian_blur:
+            score_map = T.GaussianBlur(33, sigma=400)(score_map)
 
         image_scores = torch.max(score_map.reshape(score_map.shape[0], -1), -1).values
 
