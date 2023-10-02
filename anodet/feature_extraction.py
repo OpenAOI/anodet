@@ -4,7 +4,7 @@ Provides classes and functions for extracting embedding vectors from neural netw
 
 import torch
 import torch.nn.functional as F
-from torchvision import models
+from torchvision.models import resnet18, ResNet18_Weights, wide_resnet50_2, Wide_ResNet50_2_Weights
 from tqdm import tqdm
 from typing import List, Optional, Callable, cast
 from torch.utils.data import DataLoader
@@ -32,9 +32,9 @@ class ResnetEmbeddingsExtractor(torch.nn.Module):
         assert backbone_name in ['resnet18', 'wide_resnet50']
 
         if backbone_name == 'resnet18':
-            self.backbone = models.resnet18(pretrained=True, progress=True)
+            self.backbone = resnet18(weights=ResNet18_Weights.DEFAULT, progress=True)
         elif backbone_name == 'wide_resnet50':
-            self.backbone = models.wide_resnet50_2(pretrained=True, progress=True)
+            self.backbone = wide_resnet50_2(weights=Wide_ResNet50_2_Weights.DEFAULT, progress=True)
 
         self.backbone.to(device)
         self.backbone.eval()
