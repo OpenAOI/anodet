@@ -5,3 +5,5 @@ distributions/*
 *anodet.egg-info
 .idea
 
+*venv
+*DS_Store
