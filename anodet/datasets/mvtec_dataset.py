@@ -1,4 +1,4 @@
-import os
+import os, sys
 import torch
 from PIL import Image
 from torch.utils.data import Dataset
@@ -9,21 +9,19 @@ from ..utils import standard_image_transform, standard_mask_transform
 # 'ftp://guest:GU.205dldo@ftp.softronics.ch/mvtec_anomaly_detection/mvtec_anomaly_detection.tar.xz'
 CLASS_NAMES = ['bottle', 'cable', 'capsule', 'carpet', 'grid',
                'hazelnut', 'leather', 'metal_nut', 'pill', 'screw',
-               'tile', 'toothbrush', 'transistor', 'wood', 'zipper'
+               'tile', 'toothbrush', 'transistor', 'wood', 'zipper',
                ]
 
 
 class MVTecDataset(Dataset):
     def __init__(self, dataset_path, class_name, is_train=True,
                  image_transforms=standard_image_transform, mask_transforms=standard_mask_transform):
+        self._validate_class_name(class_name)
 
-        assert class_name in CLASS_NAMES, \
-            'class_name: {}, should be in {}'.format(class_name, CLASS_NAMES)
         self.dataset_path = dataset_path
         self.class_name = class_name
         self.is_train = is_train
 
-        # load dataset
         self.x, self.y, self.mask = self.load_dataset_folder()
 
         self.image_transforms = image_transforms
@@ -43,15 +41,22 @@ class MVTecDataset(Dataset):
 
         return x, y, mask
 
-    def __len__(self):
-        return len(self.x)
 
     def load_dataset_folder(self):
-        phase = 'train' if self.is_train else 'test'
+        phrase = 'train' if self.is_train else 'test'
         x, y, mask = [], [], []
 
-        img_dir = os.path.join(self.dataset_path, self.class_name, phase)
+        img_dir = os.path.join(self.dataset_path, self.class_name, phrase)
         gt_dir = os.path.join(self.dataset_path, self.class_name, 'ground_truth')
+
+        try:
+            if os.path.exists(gt_dir):
+                assert len(os.listdir(gt_dir)) != 0, "ground_truth dir is empty."
+            else:
+                raise FileNotFoundError("ground_truth dir does not exist.")
+        except (AssertionError, FileNotFoundError) as e:
+            print(e)
+            sys.exit(1)
 
         img_types = sorted(os.listdir(img_dir))
         for img_type in img_types:
@@ -80,3 +85,10 @@ class MVTecDataset(Dataset):
         assert len(x) == len(y), 'number of x and y should be same'
 
         return list(x), list(y), list(mask)
+
+    def _validate_class_name(self, class_name):
+        if class_name not in CLASS_NAMES:
+            raise ValueError(f"class_name: {class_name}, should be in {CLASS_NAMES}")
+
+    def __len__(self):
+        return len(self.x)
