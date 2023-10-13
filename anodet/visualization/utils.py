@@ -103,8 +103,7 @@ def composite_image(image_one: Union[np.ndarray, torch.Tensor],
                     mask: Union[np.ndarray, torch.Tensor]) -> np.ndarray:
     """
     Draws image_two over image_one using a mask,
-    Areas marked a
-s 1 is transparent and 0 draws image_two with
+    Areas marked as 1 is transparent and 0 draws image_two with
     opacity 1.
 
     Args:
