@@ -7,3 +7,4 @@ distributions/*
 
 *venv
 *DS_Store
+*data_warehouse
