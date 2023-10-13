@@ -1,12 +1,6 @@
-"""
-Provides functions for testing trained models on images and whole datasets.
-"""
-
 import numpy as np
 import matplotlib.pyplot as plt
-from sklearn.metrics import roc_auc_score
-from sklearn.metrics import roc_curve
-from sklearn.metrics import precision_recall_curve
+from sklearn.metrics import roc_auc_score, roc_curve, precision_recall_curve
 from typing import Tuple, Any
 
 

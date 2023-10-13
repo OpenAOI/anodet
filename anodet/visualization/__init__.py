@@ -27,3 +27,5 @@ from .utils import (
     to_numpy,
     composite_image
 )
+
+from .eval import visualize_eval_data
