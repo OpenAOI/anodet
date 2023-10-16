@@ -10,3 +10,5 @@ distributions/*
 *data_warehouse
 notebooks/distributions
 demo/distributions
+
+camera_config.json

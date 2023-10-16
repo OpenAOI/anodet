@@ -4,27 +4,31 @@ Provides classes and functions for working with PaDiM.
 
 import math
 import random
+from typing import Callable, List, Optional, Tuple
+
+import numpy as np
 import torch
 import torch.nn.functional as F
-import numpy as np
 from torchvision import transforms as T
 from tqdm import tqdm
-from typing import Optional, Callable, List, Tuple
+
 from .feature_extraction import ResnetEmbeddingsExtractor
-from .utils import pytorch_cov, mahalanobis, split_tensor_and_run_function
+from .utils import mahalanobis, pytorch_cov, split_tensor_and_run_function
 
 
 class Padim:
     """A padim model with functions to train and perform inference."""
 
-    def __init__(self, backbone: str = 'resnet18',
-                 device: torch.device = torch.device('cpu'),
-                 mean: Optional[torch.Tensor] = None,
-                 cov_inv: Optional[torch.Tensor] = None,
-                 channel_indices: Optional[torch.Tensor] = None,
-                 layer_indices: Optional[List[int]] = None,
-                 layer_hook: Optional[Callable[[torch.Tensor], torch.Tensor]] = None) -> None:
-
+    def __init__(
+        self,
+        backbone: str = "resnet18",
+        device: torch.device = torch.device("cpu"),
+        mean: Optional[torch.Tensor] = None,
+        cov_inv: Optional[torch.Tensor] = None,
+        channel_indices: Optional[torch.Tensor] = None,
+        layer_indices: Optional[List[int]] = None,
+        layer_hook: Optional[Callable[[torch.Tensor], torch.Tensor]] = None,
+    ) -> None:
         """Construct the model and initialize the attributes
 
         Args:
@@ -48,9 +52,9 @@ class Padim:
 
         self.channel_indices = channel_indices
         if self.channel_indices is None:
-            if backbone == 'resnet18':
+            if backbone == "resnet18":
                 self.channel_indices = get_indices(100, 448, self.device)
-            elif backbone == 'wide_resnet50':
+            elif backbone == "wide_resnet50":
                 self.channel_indices = get_indices(550, 1792, self.device)
 
         self.layer_indices = layer_indices
@@ -78,7 +82,9 @@ class Padim:
         if self.channel_indices is not None:
             self.channel_indices = self.channel_indices.to(device)
 
-    def fit(self, dataloader: torch.utils.data.DataLoader, extractions: int = 1) -> None:
+    def fit(
+        self, dataloader: torch.utils.data.DataLoader, extractions: int = 1
+    ) -> None:
         """Fit the model (i.e. mean and cov_inv) to data.
 
         Args:
@@ -94,22 +100,27 @@ class Padim:
                 dataloader,
                 channel_indices=self.channel_indices,
                 layer_hook=self.layer_hook,
-                layer_indices=self.layer_indices
+                layer_indices=self.layer_indices,
             )
             if embedding_vectors is None:
                 embedding_vectors = extracted_embedding_vectors
             else:
-                embedding_vectors = torch.cat((embedding_vectors, extracted_embedding_vectors), 0)
+                embedding_vectors = torch.cat(
+                    (embedding_vectors, extracted_embedding_vectors), 0
+                )
 
         self.mean = torch.mean(embedding_vectors, dim=0)
-        cov = pytorch_cov(embedding_vectors.permute(1, 0, 2), rowvar=False) \
-            + 0.01 * torch.eye(embedding_vectors.shape[2])
+        cov = pytorch_cov(
+            embedding_vectors.permute(1, 0, 2), rowvar=False
+        ) + 0.01 * torch.eye(embedding_vectors.shape[2])
         # Run inverse function on splitted tensor to save ram memory
-        self.cov_inv = split_tensor_and_run_function(func=torch.inverse,
-                                                     tensor=cov,
-                                                     split_size=1)
+        self.cov_inv = split_tensor_and_run_function(
+            func=torch.inverse, tensor=cov, split_size=1
+        )
 
-    def predict(self, batch: torch.Tensor, gaussian_blur: bool = True) -> Tuple[torch.Tensor, torch.Tensor]:
+    def predict(
+        self, batch: torch.Tensor, gaussian_blur: bool = True
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Make a prediction on test images.
 
         Args:
@@ -121,23 +132,28 @@ class Padim:
 
         """
 
-        assert self.mean is not None and self.cov_inv is not None, \
-            "The model must be trained or provided with mean and cov_inv"
+        assert (
+            self.mean is not None and self.cov_inv is not None
+        ), "The model must be trained or provided with mean and cov_inv"
 
-        embedding_vectors = self.embeddings_extractor(batch,
-                                                      channel_indices=self.channel_indices,
-                                                      layer_hook=self.layer_hook,
-                                                      layer_indices=self.layer_indices
-                                                      )
+        embedding_vectors = self.embeddings_extractor(
+            batch,
+            channel_indices=self.channel_indices,
+            layer_hook=self.layer_hook,
+            layer_indices=self.layer_indices,
+        )
 
         patch_scores = mahalanobis(self.mean, self.cov_inv, embedding_vectors)
 
         patch_width = int(math.sqrt(embedding_vectors.shape[1]))
         patch_scores = patch_scores.reshape(batch.shape[0], patch_width, patch_width)
 
-        score_map = F.interpolate(patch_scores.unsqueeze(1), size=batch.shape[2],
-                                  mode='bilinear', align_corners=False).squeeze()
-
+        score_map = F.interpolate(
+            patch_scores.unsqueeze(1),
+            size=batch.shape[2],
+            mode="bilinear",
+            align_corners=False,
+        ).squeeze()
 
         if batch.shape[0] == 1:
             score_map = score_map.unsqueeze(0)
@@ -149,9 +165,9 @@ class Padim:
 
         return image_scores, score_map
 
-    def evaluate(self, dataloader: torch.utils.data.DataLoader) \
-            -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-
+    def evaluate(
+        self, dataloader: torch.utils.data.DataLoader
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """Run predict on all images in a dataloader and return the results.
 
         Args:
@@ -174,7 +190,7 @@ class Padim:
         image_scores = []
         score_maps = []
 
-        for (batch, image_classifications, masks) in tqdm(dataloader, 'Inference'):
+        for batch, image_classifications, masks in tqdm(dataloader, "Inference"):
             batch_image_scores, batch_score_maps = self.predict(batch)
 
             images.extend(batch.cpu().numpy())
@@ -183,16 +199,20 @@ class Padim:
             image_scores.extend(batch_image_scores.cpu().numpy())
             score_maps.extend(batch_score_maps.cpu().numpy())
 
-        return np.array(images), np.array(image_classifications_target), \
-            np.array(masks_target).flatten().astype(np.uint8), \
-            np.array(image_scores), np.array(score_maps).flatten()
+        return (
+            np.array(images),
+            np.array(image_classifications_target),
+            np.array(masks_target).flatten().astype(np.uint8),
+            np.array(image_scores),
+            np.array(score_maps).flatten(),
+        )
 
 
 def get_indices(choose, total, device):
     random.seed(1024)
     torch.manual_seed(1024)
 
-    if device.type == 'cuda':
+    if device.type == "cuda":
         torch.cuda.manual_seed_all(1024)
 
     return torch.tensor(random.sample(range(0, total), choose), device=device)
