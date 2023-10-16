@@ -43,6 +43,7 @@ def predict(dataset_path, distributions_path, cam_names, object_name, test_image
     score_map_classifications = anodet.classification(score_maps, THRESH)
     image_classifications = anodet.classification(image_scores, THRESH)
 
+
     return image_classifications, image_scores, score_maps
 
 if __name__ == "__main__":
@@ -68,9 +69,6 @@ if __name__ == "__main__":
         #  For this we might wanna use mccp here ⬆
 
         results = predict(dataset_path, distributions_path, cam_name, object_name[0], test_images)
-
-        print(results)
-        print(results[0])
 
         for i in range(len(results[0])):
 
