@@ -4,6 +4,7 @@ import cv2
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
+import matplotlib.pyplot as plt
 
 import anodet
 
@@ -67,7 +68,8 @@ def predict(
     score_map_classifications = anodet.classification(score_maps, THRESH)
     image_classifications = anodet.classification(image_scores, THRESH)
 
-    return image_classifications, image_scores
+
+    return image_classifications, image_scores, score_maps
 
 
 if __name__ == "__main__":
@@ -105,9 +107,24 @@ if __name__ == "__main__":
         )
 
         for i in range(len(results[0])):
+
+            image_file = cv2.imread(test_images[i])
+
             if results[0][i] == 0:
+
                 print(
                     f"Image {i} from {cam_name}: 🦆 Anomaly duck detected: ({results[1][i]})."
                 )
+
+                #  Save heatmap only
+                # plt.imshow(results[2][i], cmap='hot', interpolation='nearest')
+                # plt.savefig(f"{cam_name}_heatmap_{i}.png")
+
+                #  Save heatmap + original image overlay (#TODO)
+                # heatmap_overlay = anodet.visualization.heatmap_image(image=image_file, patch_scores=results[2][i])
+                # cv2.imwrite(f"{cam_name}_heatmap_{i}.png", heatmap_overlay)
+
+                print(f"Image {i} from {cam_name}: 🦆 Anomaly duck detected: ({results[1][i]}).")
+
             else:
                 print(f"Image {i} from {cam_name}: Passed. ({results[1][i]})")
