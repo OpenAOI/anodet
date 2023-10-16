@@ -1,14 +1,17 @@
-import torch
+from typing import Tuple, Union
+
 import numpy as np
-from .utils import to_numpy, blend_image
-from typing import Union, Tuple
+import torch
+
+from .utils import blend_image, to_numpy
 
 
-def highlighted_images(images: Union[np.ndarray, torch.Tensor],
-                       patch_classifications: Union[np.ndarray, torch.Tensor],
-                       color: Tuple[int, int, int] = (255, 0, 0),
-                       alpha: float = 0.5
-                       ) -> np.ndarray:
+def highlighted_images(
+    images: Union[np.ndarray, torch.Tensor],
+    patch_classifications: Union[np.ndarray, torch.Tensor],
+    color: Tuple[int, int, int] = (255, 0, 0),
+    alpha: float = 0.5,
+) -> np.ndarray:
     """
     Highlights image areas that contains anomalies on multiple images.
 
@@ -33,12 +36,12 @@ def highlighted_images(images: Union[np.ndarray, torch.Tensor],
     return np.array(h_images)
 
 
-def highlighted_image(image: Union[np.ndarray, torch.Tensor],
-                      patch_classification: Union[np.ndarray, torch.Tensor],
-                      color: Tuple[int, int, int] = (255, 0, 0),
-                      alpha: float = 0.5
-                      ) -> np.ndarray:
-
+def highlighted_image(
+    image: Union[np.ndarray, torch.Tensor],
+    patch_classification: Union[np.ndarray, torch.Tensor],
+    color: Tuple[int, int, int] = (255, 0, 0),
+    alpha: float = 0.5,
+) -> np.ndarray:
     """
     Highlights image areas that contains anomalies
 

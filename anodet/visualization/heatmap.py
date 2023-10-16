@@ -1,16 +1,20 @@
+from typing import Optional, Union
+
 import cv2
-import torch
 import numpy as np
-from .utils import normalize_patch_scores, blend_image, to_numpy
-from typing import Union, Optional
+import torch
+
+from .utils import blend_image, normalize_patch_scores, to_numpy
 
 
-def heatmap_images(images: Union[np.ndarray, torch.Tensor],
-                   list_of_patch_scores: Union[np.ndarray, torch.Tensor],
-                   masks: Optional[Union[np.ndarray, torch.Tensor]] = None,
-                   min_v: Optional[float] = None,
-                   max_v: Optional[float] = None,
-                   alpha: float = 0.6) -> np.ndarray:
+def heatmap_images(
+    images: Union[np.ndarray, torch.Tensor],
+    list_of_patch_scores: Union[np.ndarray, torch.Tensor],
+    masks: Optional[Union[np.ndarray, torch.Tensor]] = None,
+    min_v: Optional[float] = None,
+    max_v: Optional[float] = None,
+    alpha: float = 0.6,
+) -> np.ndarray:
     """
     Takes array of images and patch_scores to create heatmaps on the images.
 
@@ -34,9 +38,7 @@ def heatmap_images(images: Union[np.ndarray, torch.Tensor],
         masks = to_numpy(masks).copy()
 
     norm_patch_scores = normalize_patch_scores(
-        list_of_patch_scores,
-        min_v=min_v,
-        max_v=max_v
+        list_of_patch_scores, min_v=min_v, max_v=max_v
     )
 
     for i, score in enumerate(norm_patch_scores):
@@ -47,12 +49,14 @@ def heatmap_images(images: Union[np.ndarray, torch.Tensor],
     return np.array(heatmaps)
 
 
-def heatmap_image(image: Union[np.ndarray, torch.Tensor],
-                  patch_scores: Union[np.ndarray, torch.Tensor],
-                  mask: Optional[Union[np.ndarray, torch.Tensor]] = None,
-                  min_v: Optional[float] = None,
-                  max_v: Optional[float] = None,
-                  alpha: float = 0.6) -> np.ndarray:
+def heatmap_image(
+    image: Union[np.ndarray, torch.Tensor],
+    patch_scores: Union[np.ndarray, torch.Tensor],
+    mask: Optional[Union[np.ndarray, torch.Tensor]] = None,
+    min_v: Optional[float] = None,
+    max_v: Optional[float] = None,
+    alpha: float = 0.6,
+) -> np.ndarray:
     """
     draws a heatmap over a image using patch_scores to
     indicate areas of interest.
@@ -78,11 +82,7 @@ def heatmap_image(image: Union[np.ndarray, torch.Tensor],
         mask = np.logical_not(mask).astype(np.uint8)
 
     if min_v and max_v:
-        patch_scores = normalize_patch_scores(
-            patch_scores,
-            min_v=min_v,
-            max_v=max_v
-        )
+        patch_scores = normalize_patch_scores(patch_scores, min_v=min_v, max_v=max_v)
 
     patch_scores = (1 - patch_scores) * 255
     patch_scores = patch_scores.astype(np.uint8)

@@ -2,12 +2,14 @@
 Provides classes and functions for extracting embedding vectors from neural networks.
 """
 
+from typing import Callable, List, Optional, cast
+
 import torch
 import torch.nn.functional as F
-from torchvision.models import resnet18, ResNet18_Weights, wide_resnet50_2, Wide_ResNet50_2_Weights
-from tqdm import tqdm
-from typing import List, Optional, Callable, cast
 from torch.utils.data import DataLoader
+from torchvision.models import (ResNet18_Weights, Wide_ResNet50_2_Weights,
+                                resnet18, wide_resnet50_2)
+from tqdm import tqdm
 
 
 class ResnetEmbeddingsExtractor(torch.nn.Module):
@@ -29,12 +31,14 @@ class ResnetEmbeddingsExtractor(torch.nn.Module):
         """
 
         super().__init__()
-        assert backbone_name in ['resnet18', 'wide_resnet50']
+        assert backbone_name in ["resnet18", "wide_resnet50"]
 
-        if backbone_name == 'resnet18':
+        if backbone_name == "resnet18":
             self.backbone = resnet18(weights=ResNet18_Weights.DEFAULT, progress=True)
-        elif backbone_name == 'wide_resnet50':
-            self.backbone = wide_resnet50_2(weights=Wide_ResNet50_2_Weights.DEFAULT, progress=True)
+        elif backbone_name == "wide_resnet50":
+            self.backbone = wide_resnet50_2(
+                weights=Wide_ResNet50_2_Weights.DEFAULT, progress=True
+            )
 
         self.backbone.to(device)
         self.backbone.eval()
@@ -48,12 +52,13 @@ class ResnetEmbeddingsExtractor(torch.nn.Module):
         """
         self.backbone.to(device)
 
-    def forward(self,
-                batch: torch.Tensor,
-                channel_indices: Optional[torch.Tensor] = None,
-                layer_hook: Optional[Callable[[torch.Tensor], torch.Tensor]] = None,
-                layer_indices: Optional[List[int]] = None
-                ) -> torch.Tensor:
+    def forward(
+        self,
+        batch: torch.Tensor,
+        channel_indices: Optional[torch.Tensor] = None,
+        layer_hook: Optional[Callable[[torch.Tensor], torch.Tensor]] = None,
+        layer_indices: Optional[List[int]] = None,
+    ) -> torch.Tensor:
         """Run inference on backbone and return the embedding vectors.
 
         Args:
@@ -71,7 +76,6 @@ class ResnetEmbeddingsExtractor(torch.nn.Module):
         """
 
         with torch.no_grad():
-
             batch = self.backbone.conv1(batch)
             batch = self.backbone.bn1(batch)
             batch = self.backbone.relu(batch)
@@ -91,35 +95,43 @@ class ResnetEmbeddingsExtractor(torch.nn.Module):
             embedding_vectors = concatenate_layers(layers)
 
             if channel_indices is not None:
-                embedding_vectors = torch.index_select(embedding_vectors, 1, channel_indices)
+                embedding_vectors = torch.index_select(
+                    embedding_vectors, 1, channel_indices
+                )
 
             batch_size, length, width, height = embedding_vectors.shape
-            embedding_vectors = embedding_vectors.reshape(batch_size, length, width*height)
+            embedding_vectors = embedding_vectors.reshape(
+                batch_size, length, width * height
+            )
             embedding_vectors = embedding_vectors.permute(0, 2, 1)
 
             return embedding_vectors
 
-    def from_dataloader(self,
-                        dataloader: DataLoader,
-                        channel_indices: Optional[torch.Tensor] = None,
-                        layer_hook: Optional[Callable[[torch.Tensor], torch.Tensor]] = None,
-                        layer_indices: Optional[List[int]] = None
-                        ) -> torch.Tensor:
+    def from_dataloader(
+        self,
+        dataloader: DataLoader,
+        channel_indices: Optional[torch.Tensor] = None,
+        layer_hook: Optional[Callable[[torch.Tensor], torch.Tensor]] = None,
+        layer_indices: Optional[List[int]] = None,
+    ) -> torch.Tensor:
         """Same as self.forward but take a dataloader instead of a tensor as argument."""
 
         embedding_vectors: Optional[torch.Tensor] = None
 
-        for (batch, _, _) in tqdm(dataloader, 'Feature extraction'):
-
-            batch_embedding_vectors = self(batch,
-                                           channel_indices=channel_indices,
-                                           layer_hook=layer_hook,
-                                           layer_indices=layer_indices)
+        for batch, _, _ in tqdm(dataloader, "Feature extraction"):
+            batch_embedding_vectors = self(
+                batch,
+                channel_indices=channel_indices,
+                layer_hook=layer_hook,
+                layer_indices=layer_indices,
+            )
 
             if embedding_vectors is None:
                 embedding_vectors = batch_embedding_vectors
             else:
-                embedding_vectors = torch.cat((embedding_vectors, batch_embedding_vectors), 0)
+                embedding_vectors = torch.cat(
+                    (embedding_vectors, batch_embedding_vectors), 0
+                )
 
         return cast(torch.Tensor, embedding_vectors)
 
@@ -142,13 +154,23 @@ def concatenate_two_layers(layer1: torch.Tensor, layer2: torch.Tensor) -> torch.
     height_ratio = int(height1 / height2)
     layer1 = F.unfold(layer1, kernel_size=height_ratio, dilation=1, stride=height_ratio)
     layer1 = layer1.view(batch_length, channel_num1, -1, height2, width2)
-    result = torch.zeros(batch_length, channel_num1 + channel_num2, layer1.size(2),
-                         height2, width2, device=device)
+    result = torch.zeros(
+        batch_length,
+        channel_num1 + channel_num2,
+        layer1.size(2),
+        height2,
+        width2,
+        device=device,
+    )
     for i in range(layer1.size(2)):
         result[:, :, i, :, :] = torch.cat((layer1[:, :, i, :, :], layer2), 1)
     del layer1
     del layer2
     result = result.view(batch_length, -1, height2 * width2)
-    result = F.fold(result, kernel_size=height_ratio,
-                    output_size=(height1, width1), stride=height_ratio)
+    result = F.fold(
+        result,
+        kernel_size=height_ratio,
+        output_size=(height1, width1),
+        stride=height_ratio,
+    )
     return result

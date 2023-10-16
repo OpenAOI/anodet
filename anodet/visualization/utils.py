@@ -1,13 +1,14 @@
+from typing import Optional, Tuple, Union, cast
+
+import cv2
 import numpy as np
 import torch
-import cv2
 from PIL import Image
-from typing import Union, Tuple, cast, Optional
 
 
-def merge_images(images: Union[np.ndarray, torch.Tensor],
-                 margin: int = 0
-                 ) -> np.ndarray:
+def merge_images(
+    images: Union[np.ndarray, torch.Tensor], margin: int = 0
+) -> np.ndarray:
     """
     Combine multiple images to a big image, with a specified margin,
     between the images.
@@ -34,10 +35,11 @@ def merge_images(images: Union[np.ndarray, torch.Tensor],
     return tot_image
 
 
-def frame_image(image: Union[np.ndarray, torch.Tensor],
-                padding: int = 30,
-                color: Tuple[int, int, int] = (0, 0, 0)
-                ) -> np.ndarray:
+def frame_image(
+    image: Union[np.ndarray, torch.Tensor],
+    padding: int = 30,
+    color: Tuple[int, int, int] = (0, 0, 0),
+) -> np.ndarray:
     """
     Draws a colored frame around a image.
     Args:
@@ -56,16 +58,17 @@ def frame_image(image: Union[np.ndarray, torch.Tensor],
     image_shape = (image_height, image_width, channels)
     f_image = np.ones(image_shape, dtype=np.uint8)
     f_image[:] = color
-    f_image[padding:image_height - padding, padding: image_width - padding] = image
+    f_image[padding : image_height - padding, padding : image_width - padding] = image
 
     return f_image
 
 
-def blend_image(image_one: Union[np.ndarray, torch.Tensor],
-                image_two: Union[np.ndarray, torch.Tensor],
-                alpha: float = 0.5,
-                mask: Optional[np.ndarray] = None
-                ) -> np.ndarray:
+def blend_image(
+    image_one: Union[np.ndarray, torch.Tensor],
+    image_two: Union[np.ndarray, torch.Tensor],
+    alpha: float = 0.5,
+    mask: Optional[np.ndarray] = None,
+) -> np.ndarray:
     """
     Draws image on another image, with a set opacity.
     Args:
@@ -85,9 +88,7 @@ def blend_image(image_one: Union[np.ndarray, torch.Tensor],
     layer_two = cv2.resize(layer_two, (width, height), interpolation=cv2.INTER_AREA)
 
     blended_image = Image.blend(
-        Image.fromarray(layer_one),
-        Image.fromarray(layer_two),
-        alpha=alpha
+        Image.fromarray(layer_one), Image.fromarray(layer_two), alpha=alpha
     )
 
     if isinstance(mask, (np.ndarray, torch.Tensor)):
@@ -98,9 +99,11 @@ def blend_image(image_one: Union[np.ndarray, torch.Tensor],
     return np.array(blended_image)
 
 
-def composite_image(image_one: Union[np.ndarray, torch.Tensor],
-                    image_two: Union[np.ndarray, torch.Tensor],
-                    mask: Union[np.ndarray, torch.Tensor]) -> np.ndarray:
+def composite_image(
+    image_one: Union[np.ndarray, torch.Tensor],
+    image_two: Union[np.ndarray, torch.Tensor],
+    mask: Union[np.ndarray, torch.Tensor],
+) -> np.ndarray:
     """
     Draws image_two over image_one using a mask,
     Areas marked as 1 is transparent and 0 draws image_two with
@@ -124,16 +127,17 @@ def composite_image(image_one: Union[np.ndarray, torch.Tensor],
     image_two = cv2.resize(image_two, (width, height), interpolation=cv2.INTER_AREA)
     mask = cv2.resize(mask, (width, height), interpolation=cv2.INTER_AREA)
 
-    mask = (mask == (1 | True))
+    mask = mask == (1 | True)
     image_one[mask] = image_two[mask]
 
     return image_one
 
 
-def normalize_patch_scores(patch_scores: Union[np.ndarray, torch.Tensor],
-                           min_v: Optional[float] = None,
-                           max_v: Optional[float] = None,
-                           ) -> np.ndarray:
+def normalize_patch_scores(
+    patch_scores: Union[np.ndarray, torch.Tensor],
+    min_v: Optional[float] = None,
+    max_v: Optional[float] = None,
+) -> np.ndarray:
     """
     Takes a set of patch_scores and normalize them to values between 0-1.
     Args:
@@ -160,9 +164,7 @@ def normalize_patch_scores(patch_scores: Union[np.ndarray, torch.Tensor],
     return normalized_matrix
 
 
-def normalize_matrix(matrix: np.ndarray,
-                     minimum: float,
-                     maximum: float) -> np.ndarray:
+def normalize_matrix(matrix: np.ndarray, minimum: float, maximum: float) -> np.ndarray:
     """
     Args:
         matrix: Matrix to be normalized.

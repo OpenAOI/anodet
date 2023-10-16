@@ -1,23 +1,30 @@
 import os
-import torch
 from typing import Optional
+
+import torch
 from PIL import Image
 from torch.utils.data import Dataset
 from torchvision import transforms as T
+
 from ..utils import standard_image_transform, standard_mask_transform
 
 
 def allowed_file(filename):
-    return ("." in filename and filename.rsplit(".", 1)[1].lower() in ["png", "jpg", "jpeg"])
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in [
+        "png",
+        "jpg",
+        "jpeg",
+    ]
 
 
 class AnodetDataset(Dataset):
-
-    def __init__(self, image_directory_path: str,
-                 mask_directory_path: Optional[str] = None,
-                 image_transforms: T.Compose = standard_image_transform,
-                 mask_transforms: T.Compose = standard_mask_transform) -> None:
-
+    def __init__(
+        self,
+        image_directory_path: str,
+        mask_directory_path: Optional[str] = None,
+        image_transforms: T.Compose = standard_image_transform,
+        mask_transforms: T.Compose = standard_mask_transform,
+    ) -> None:
         self.image_transforms = image_transforms
         self.mask_transforms = mask_transforms
 
@@ -27,7 +34,9 @@ class AnodetDataset(Dataset):
         for file in os.listdir(self.image_directory_path):
             filename = os.fsdecode(file)
             if allowed_file(filename):
-                self.image_paths.append(os.path.join(self.image_directory_path, filename))
+                self.image_paths.append(
+                    os.path.join(self.image_directory_path, filename)
+                )
 
         # Load mask paths if mask_directory_path argument is given
         self.mask_directory_path = mask_directory_path
@@ -36,7 +45,9 @@ class AnodetDataset(Dataset):
             for file in os.listdir(self.mask_directory_path):
                 filename = os.fsdecode(file)
                 if allowed_file(filename):
-                    self.mask_paths.append(os.path.join(self.mask_directory_path, filename))
+                    self.mask_paths.append(
+                        os.path.join(self.mask_directory_path, filename)
+                    )
 
             assert len(self.image_paths) == len(self.mask_paths)
 
@@ -44,9 +55,8 @@ class AnodetDataset(Dataset):
         return len(self.image_paths)
 
     def __getitem__(self, idx):
-
         # Load image
-        image = Image.open(self.image_paths[idx]).convert('RGB')
+        image = Image.open(self.image_paths[idx]).convert("RGB")
         image = self.image_transforms(image)
 
         # Load mask if mask_directory_path argument is given

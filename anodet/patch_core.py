@@ -3,28 +3,32 @@ Provides classes and functions for working with PatchCore.
 """
 
 import math
-import torch
-import numpy as np
+from typing import Callable, List, Optional, Tuple
+
 import cv2
-from sklearn.random_projection import SparseRandomProjection
-from sklearn.neighbors import NearestNeighbors
+import numpy as np
+import torch
 from scipy.ndimage import gaussian_filter
-from typing import Optional, Callable, List, Tuple
+from sklearn.neighbors import NearestNeighbors
+from sklearn.random_projection import SparseRandomProjection
 from tqdm import tqdm
-from .sampling_methods.kcenter_greedy import kCenterGreedy
+
 from .feature_extraction import ResnetEmbeddingsExtractor
+from .sampling_methods.kcenter_greedy import kCenterGreedy
 
 
 class PatchCore:
     """A PatchCore model with functions to train and perform inference."""
 
-    def __init__(self, backbone: str = 'resnet18',
-                 device: torch.device = torch.device('cpu'),
-                 embedding_coreset: Optional[torch.Tensor] = None,
-                 channel_indices: Optional[torch.Tensor] = None,
-                 layer_indices: Optional[List[int]] = None,
-                 layer_hook: Optional[Callable[[torch.Tensor], torch.Tensor]] = None) -> None:
-
+    def __init__(
+        self,
+        backbone: str = "resnet18",
+        device: torch.device = torch.device("cpu"),
+        embedding_coreset: Optional[torch.Tensor] = None,
+        channel_indices: Optional[torch.Tensor] = None,
+        layer_indices: Optional[List[int]] = None,
+        layer_hook: Optional[Callable[[torch.Tensor], torch.Tensor]] = None,
+    ) -> None:
         """Construct the model and initialize the attributes
 
         Args:
@@ -68,9 +72,9 @@ class PatchCore:
         if self.channel_indices is not None:
             self.channel_indices = self.channel_indices.to(device)
 
-    def fit(self, dataloader: torch.utils.data.DataLoader,
-            sampling_ratio: float = 0.001) -> None:
-
+    def fit(
+        self, dataloader: torch.utils.data.DataLoader, sampling_ratio: float = 0.001
+    ) -> None:
         """Fit the model (i.e. embedding_coreset) to data.
 
         Args:
@@ -83,31 +87,37 @@ class PatchCore:
             dataloader,
             channel_indices=self.channel_indices,
             layer_hook=self.layer_hook,
-            layer_indices=self.layer_indices
+            layer_indices=self.layer_indices,
         )
 
         batch_length, vector_num, channel_num = embedding_vectors.shape
-        embedding_vectors = embedding_vectors.reshape(batch_length*vector_num,
-                                                      channel_num).cpu().numpy()
+        embedding_vectors = (
+            embedding_vectors.reshape(batch_length * vector_num, channel_num)
+            .cpu()
+            .numpy()
+        )
 
-        randomprojector = SparseRandomProjection(n_components='auto', eps=0.9)
+        randomprojector = SparseRandomProjection(n_components="auto", eps=0.9)
         randomprojector.fit(embedding_vectors)
 
         selector = kCenterGreedy(embedding_vectors, 0, 0)
-        selected_idx = selector.select_batch(model=randomprojector, already_selected=[],
-                                             N=int(embedding_vectors.shape[0]*sampling_ratio))
+        selected_idx = selector.select_batch(
+            model=randomprojector,
+            already_selected=[],
+            N=int(embedding_vectors.shape[0] * sampling_ratio),
+        )
 
         self.embedding_coreset = embedding_vectors[selected_idx]
 
-    def predict(self,
-                batch: torch.Tensor,
-                n_neighbors: int = 9,
-                nn_algorithm: str = "ball_tree",
-                nn_metric: str = "minkowski",
-                apply_gaussian: bool = True,
-                apply_resize: bool = True
-                ) -> Tuple[torch.Tensor, torch.Tensor]:
-
+    def predict(
+        self,
+        batch: torch.Tensor,
+        n_neighbors: int = 9,
+        nn_algorithm: str = "ball_tree",
+        nn_metric: str = "minkowski",
+        apply_gaussian: bool = True,
+        apply_resize: bool = True,
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Make a prediction on test images.
 
         Args:
@@ -124,20 +134,25 @@ class PatchCore:
 
         """
 
-        assert self.embedding_coreset is not None, \
-            "The model must be fitted or provided with embedding_coreset"
+        assert (
+            self.embedding_coreset is not None
+        ), "The model must be fitted or provided with embedding_coreset"
 
-        embedding_vectors = self.embeddings_extractor(batch,
-                                                      channel_indices=self.channel_indices,
-                                                      layer_hook=self.layer_hook,
-                                                      layer_indices=self.layer_indices
-                                                      )
+        embedding_vectors = self.embeddings_extractor(
+            batch,
+            channel_indices=self.channel_indices,
+            layer_hook=self.layer_hook,
+            layer_indices=self.layer_indices,
+        )
 
-        nbrs = NearestNeighbors(n_neighbors=n_neighbors, algorithm=nn_algorithm,
-                                metric=nn_metric, p=2).fit(self.embedding_coreset)
+        nbrs = NearestNeighbors(
+            n_neighbors=n_neighbors, algorithm=nn_algorithm, metric=nn_metric, p=2
+        ).fit(self.embedding_coreset)
 
         patch_width = int(math.sqrt(embedding_vectors.shape[1]))
-        score_maps = torch.zeros((embedding_vectors.shape[0], batch.shape[2], batch.shape[2]))
+        score_maps = torch.zeros(
+            (embedding_vectors.shape[0], batch.shape[2], batch.shape[2])
+        )
 
         image_scores = torch.zeros(embedding_vectors.shape[0])
 
@@ -146,8 +161,8 @@ class PatchCore:
             score_map = patch_score[:, 0].reshape((patch_width, patch_width))
 
             N_b = patch_score[np.argmax(patch_score[:, 0])]
-            w = (1 - (np.max(np.exp(N_b))/np.sum(np.exp(N_b))))
-            image_scores[i] = w*max(patch_score[:, 0])
+            w = 1 - (np.max(np.exp(N_b)) / np.sum(np.exp(N_b)))
+            image_scores[i] = w * max(patch_score[:, 0])
 
             if apply_resize:
                 score_map = cv2.resize(score_map, (batch.shape[2], batch.shape[2]))
@@ -157,15 +172,15 @@ class PatchCore:
 
         return image_scores, score_maps
 
-    def evaluate(self,
-                 dataloader: torch.utils.data.DataLoader,
-                 n_neighbors: int = 9,
-                 nn_algorithm: str = "ball_tree",
-                 nn_metric: str = "minkowski",
-                 apply_gaussian: bool = True,
-                 apply_resize: bool = True
-                 ):
-
+    def evaluate(
+        self,
+        dataloader: torch.utils.data.DataLoader,
+        n_neighbors: int = 9,
+        nn_algorithm: str = "ball_tree",
+        nn_metric: str = "minkowski",
+        apply_gaussian: bool = True,
+        apply_resize: bool = True,
+    ):
         """Run predict on all images in a dataloader and return the results.
 
         Args:
@@ -193,15 +208,15 @@ class PatchCore:
         image_scores = []
         score_maps = []
 
-        for (batch, image_classifications, masks) in tqdm(dataloader, 'Inference'):
-            batch_image_scores, batch_score_maps = \
-                self.predict(batch,
-                             n_neighbors,
-                             nn_algorithm,
-                             nn_metric,
-                             apply_gaussian,
-                             apply_resize
-                             )
+        for batch, image_classifications, masks in tqdm(dataloader, "Inference"):
+            batch_image_scores, batch_score_maps = self.predict(
+                batch,
+                n_neighbors,
+                nn_algorithm,
+                nn_metric,
+                apply_gaussian,
+                apply_resize,
+            )
 
             images.extend(batch.cpu().numpy())
             image_classifications_target.extend(image_classifications.cpu().numpy())
@@ -209,6 +224,10 @@ class PatchCore:
             image_scores.extend(batch_image_scores.cpu().numpy())
             score_maps.extend(batch_score_maps.cpu().numpy())
 
-        return np.array(images), np.array(image_classifications_target), \
-            np.array(masks_target).flatten().astype(np.uint8), \
-            np.array(image_scores), np.array(score_maps).flatten()
+        return (
+            np.array(images),
+            np.array(image_classifications_target),
+            np.array(masks_target).flatten().astype(np.uint8),
+            np.array(image_scores),
+            np.array(score_maps).flatten(),
+        )

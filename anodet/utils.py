@@ -2,34 +2,35 @@
 Provides utility functions for anomaly detection.
 """
 
+import os
+from typing import Callable, List, Optional, Union
+
 import numpy as np
 import torch
-from typing import List, Optional, Callable, Union
-from torchvision import transforms as T
 from PIL import Image
-import os
+from torchvision import transforms as T
+
+standard_image_transform = T.Compose(
+    [
+        T.Resize(224),
+        T.CenterCrop(224),
+        T.ToTensor(),
+        T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+    ]
+)
+
+standard_mask_transform = T.Compose([T.Resize(224), T.CenterCrop(224), T.ToTensor()])
 
 
-standard_image_transform = T.Compose([T.Resize(224),
-                                      T.CenterCrop(224),
-                                      T.ToTensor(),
-                                      T.Normalize(mean=[0.485, 0.456, 0.406],
-                                                  std=[0.229, 0.224, 0.225])
-                                      ])
-
-standard_mask_transform = T.Compose([T.Resize(224),
-                                     T.CenterCrop(224),
-                                     T.ToTensor()
-                                     ])
-
-
-def to_batch(images: List[np.ndarray], transforms: T.Compose, device: torch.device) -> torch.Tensor:
+def to_batch(
+    images: List[np.ndarray], transforms: T.Compose, device: torch.device
+) -> torch.Tensor:
     """Convert a list of numpy array images to a pytorch tensor batch with given transforms."""
     assert len(images) > 0
 
     transformed_images = []
     for i, image in enumerate(images):
-        image = Image.fromarray(image).convert('RGB')
+        image = Image.fromarray(image).convert("RGB")
         transformed_images.append(transforms(image))
 
     height, width = transformed_images[0].shape[1:3]
@@ -42,7 +43,9 @@ def to_batch(images: List[np.ndarray], transforms: T.Compose, device: torch.devi
 
 
 # From: https://github.com/pytorch/pytorch/issues/19037
-def pytorch_cov(tensor: torch.Tensor, rowvar: bool = True, bias: bool = False) -> torch.Tensor:
+def pytorch_cov(
+    tensor: torch.Tensor, rowvar: bool = True, bias: bool = False
+) -> torch.Tensor:
     """Estimate a covariance matrix (np.cov)."""
     tensor = tensor if rowvar else tensor.transpose(-1, -2)
     tensor = tensor - tensor.mean(dim=-1, keepdim=True)
@@ -50,7 +53,9 @@ def pytorch_cov(tensor: torch.Tensor, rowvar: bool = True, bias: bool = False) -
     return factor * tensor @ tensor.transpose(-1, -2).conj()
 
 
-def mahalanobis(mean: torch.Tensor, cov_inv: torch.Tensor, batch: torch.Tensor) -> torch.Tensor:
+def mahalanobis(
+    mean: torch.Tensor, cov_inv: torch.Tensor, batch: torch.Tensor
+) -> torch.Tensor:
     """Calculate the mahalonobis distance
 
     Calculate the mahalanobis distance between a multivariate normal distribution
@@ -67,12 +72,15 @@ def mahalanobis(mean: torch.Tensor, cov_inv: torch.Tensor, batch: torch.Tensor) 
     """
 
     # Assert that parameters has acceptable dimensions
-    assert len(mean.shape) == 1 or len(mean.shape) == 2, \
-        'mean must be a vector or a set of vectors (matrix)'
-    assert len(batch.shape) == 1 or len(batch.shape) == 2 or len(batch.shape) == 3, \
-        'batch must be a vector or a set of vectors (matrix) or a set of sets of vectors (3d tensor)'
-    assert len(cov_inv.shape) == 2 or len(cov_inv.shape) == 3, \
-        'cov_inv must be a matrix or a set of matrices (3d tensor)'
+    assert (
+        len(mean.shape) == 1 or len(mean.shape) == 2
+    ), "mean must be a vector or a set of vectors (matrix)"
+    assert (
+        len(batch.shape) == 1 or len(batch.shape) == 2 or len(batch.shape) == 3
+    ), "batch must be a vector or a set of vectors (matrix) or a set of sets of vectors (3d tensor)"
+    assert (
+        len(cov_inv.shape) == 2 or len(cov_inv.shape) == 3
+    ), "cov_inv must be a matrix or a set of matrices (3d tensor)"
 
     # Standardize the dimensions
     if len(mean.shape) == 1:
@@ -82,7 +90,7 @@ def mahalanobis(mean: torch.Tensor, cov_inv: torch.Tensor, batch: torch.Tensor) 
     if len(batch.shape) == 1:
         batch = batch.unsqueeze(0)
     if len(batch.shape) == 3:
-        batch = batch.reshape(batch.shape[0]*batch.shape[1], batch.shape[2])
+        batch = batch.reshape(batch.shape[0] * batch.shape[1], batch.shape[2])
 
     # Assert that parameters has acceptable shapes
     assert mean.shape[0] == cov_inv.shape[0]
@@ -92,7 +100,7 @@ def mahalanobis(mean: torch.Tensor, cov_inv: torch.Tensor, batch: torch.Tensor) 
     # Set shape variables
     mini_batch_size, length = mean.shape
     batch_size = batch.shape[0]
-    ratio = int(batch_size/mini_batch_size)
+    ratio = int(batch_size / mini_batch_size)
 
     # If a set of sets of distances is to be computed, expand mean and cov_inv
     if batch_size > mini_batch_size:
@@ -109,7 +117,7 @@ def mahalanobis(mean: torch.Tensor, cov_inv: torch.Tensor, batch: torch.Tensor) 
     batch = batch.float()
 
     # Calculate mahalanobis distance
-    diff = mean-batch
+    diff = mean - batch
     mult1 = torch.bmm(diff.unsqueeze(1), cov_inv)
     mult2 = torch.bmm(mult1, diff.unsqueeze(2))
     sqrt = torch.sqrt(mult2)
@@ -157,11 +165,8 @@ def classification(image_scores: torch.Tensor, thresh: float) -> torch.Tensor:
     image_classifications[image_classifications >= thresh] = 0
     return image_classifications
 
- 
-def rename_files(
-            source_path: str,
-            destination_path: Optional[str] = None
-        ) -> None:
+
+def rename_files(source_path: str, destination_path: Optional[str] = None) -> None:
     """Rename all files in a directory path with increasing integer name.
     Ex. 0001.png, 0002.png ...
     Write files to destination path if argument is given.
@@ -185,10 +190,10 @@ def rename_files(
 
 
 def split_tensor_and_run_function(
-            func: Callable[[torch.Tensor], List],
-            tensor: torch.Tensor,
-            split_size: Union[int, List]
-        ) -> torch.Tensor:
+    func: Callable[[torch.Tensor], List],
+    tensor: torch.Tensor,
+    split_size: Union[int, List],
+) -> torch.Tensor:
     """Splits the tensor into chunks in given split_size and run a function on each chunk.
 
     Args:
