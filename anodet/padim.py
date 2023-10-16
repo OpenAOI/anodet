@@ -143,7 +143,7 @@ class Padim:
             score_map = score_map.unsqueeze(0)
 
         if gaussian_blur:
-            score_map = T.GaussianBlur(33, sigma=400)(score_map)
+            score_map = T.GaussianBlur(33, sigma=4)(score_map)
 
         image_scores = torch.max(score_map.reshape(score_map.shape[0], -1), -1).values
 
