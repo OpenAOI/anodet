@@ -7,3 +7,6 @@ distributions/*
 
 *venv
 *DS_Store
+*data_warehouse
+notebooks/distributions
+demo/distributions
