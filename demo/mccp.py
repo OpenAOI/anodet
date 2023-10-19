@@ -6,11 +6,11 @@ from multicamcomposepro.utils import (CameraConfigurator, CameraIdentifier,
 
 def main():
     # Setting necessary variables:
-    object_var = "leather_case"
-    anomaly_var = ["scratches", "dents", "stains"]
-    num_train_images = 10
-    num_test_images = 5
-    temperature_var = 0.5
+    object_var = "dwn-001"
+    anomaly_var = ["Case"]
+    num_train_images = 5
+    num_test_images = 2
+    temperature_var = 0.1
     num_aug_images = 3
 
     # Create a Camera Identifier instance to create camera_config.json and set camera order
@@ -44,16 +44,13 @@ def main():
         num_augmented_images=num_aug_images,
     )
     if num_train_images <= 10:
-        if (
-            input(
-                "Training images are less than 10. Do you want to add more images to the training set? (y/n)"
-            )
-            == "y"
-            or "Y"
-        ):
-            augmentor.augment_images()
+        augment = input("Do you wish to create synthetic train images by augmenting existing? [Y/N] ")
+        if augment.lower() != "y" and augment.lower() != "yes":
+            print("Augment cancelled.")
         else:
-            pass
+            augmentor.augment_images()
+
+
 
 
 if __name__ == "__main__":

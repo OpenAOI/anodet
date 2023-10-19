@@ -12,7 +12,7 @@ dataset_path = os.path.realpath("data_warehouse/dataset")
 distributions_path = os.path.realpath("demo/distributions/")
 
 model = anodet.Padim(backbone="resnet18")
-object_name = ["purple_duck", "snusdosa"]
+object_name = ["leather_case", "snusdosa"]
 cam_names = ["cam_0_left", "cam_1_right"]
 
 
