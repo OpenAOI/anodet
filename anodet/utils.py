@@ -56,7 +56,7 @@ def pytorch_cov(
 def mahalanobis(
     mean: torch.Tensor, cov_inv: torch.Tensor, batch: torch.Tensor
 ) -> torch.Tensor:
-    """Calculate the mahalonobis distance
+    """Calculate the mahalanobis distance
 
     Calculate the mahalanobis distance between a multivariate normal distribution
     and a point or elementwise between a set of distributions and a set of points.
@@ -67,7 +67,7 @@ def mahalanobis(
         batch: A point or a set of points.
 
     Returns:
-        mahalonobis_distance: A distance or a set of distances or a set of sets of distances.
+        mahalanobis_distance: A distance or a set of distances or a set of sets of distances.
 
     """
 
