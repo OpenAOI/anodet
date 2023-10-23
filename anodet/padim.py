@@ -12,8 +12,8 @@ import torch.nn.functional as F
 from torchvision import transforms as T
 from tqdm import tqdm
 
-from feature_extraction import ResnetEmbeddingsExtractor
-from utils import mahalanobis, pytorch_cov, split_tensor_and_run_function
+from .feature_extraction import ResnetEmbeddingsExtractor
+from .utils import mahalanobis, pytorch_cov, split_tensor_and_run_function
 
 
 class Padim:
@@ -44,7 +44,7 @@ class Padim:
             allowed indices are 1, 2, 3 and 4.
             layer_hook: A function that can modify the layers during extraction.
         """
-        self.backbone = backbone
+
         self.device = device
         self.embeddings_extractor = ResnetEmbeddingsExtractor(backbone, self.device)
         self.mean = mean
@@ -207,16 +207,6 @@ class Padim:
             np.array(score_maps).flatten(),
         )
 
-    def __repr__(self) -> str:
-        attributes = [f"backbone={self.backbone if self.backbone else 'None'}",
-                      f"device={self.device}",
-                      f"mean={self.mean if self.mean is not None else 'None'}",
-                      f"cov_inv={self.cov_inv if self.cov_inv is not None else 'None'}",
-                      f"channel_indices={self.channel_indices if self.channel_indices is not None else 'None'}",
-                      f"layer_indices={self.layer_indices if self.layer_indices is not None else 'None'}",
-                      f"layer_hook={self.layer_hook if self.layer_hook is not None else 'None'}"]
-        return f"Padim({', '.join(attributes)})"
-
 
 def get_indices(choose, total, device):
     random.seed(1024)
@@ -226,8 +216,3 @@ def get_indices(choose, total, device):
         torch.cuda.manual_seed_all(1024)
 
     return torch.tensor(random.sample(range(0, total), choose), device=device)
-
-
-if __name__ == "__main__":
-    padim = Padim()
-    print(padim)
