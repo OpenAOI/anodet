@@ -50,6 +50,14 @@ class Padim:
         self.mean = mean
         self.cov_inv = cov_inv
 
+        # Embeddings/feature extraction done in feature_extraction.py (kernel).
+        # The kernel will try to extract the important features of the images and remove
+        # the background noise.
+
+        # Channels will store this extracted information which will act as an input for the
+        # next kernel (or layer). Some channels contain gradients and color shades, others
+        # contain sharp edges found the images.
+
         self.channel_indices = channel_indices
         if self.channel_indices is None:
             if backbone == "resnet18":
@@ -57,10 +65,13 @@ class Padim:
             elif backbone == "wide_resnet50":
                 self.channel_indices = get_indices(550, 1792, self.device)
 
+        # List that determines which layers to extract from the backbone.
+        # Each layer captures different blocks of the backbone network.
         self.layer_indices = layer_indices
         if self.layer_indices is None:
             self.layer_indices = [0, 1, 2]
 
+        # Layer hook performs operations on all layers, as of now, no layer hooks are applied
         self.layer_hook = layer_hook
         self.to_device(self.device)
 
