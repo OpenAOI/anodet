@@ -6,9 +6,8 @@ from torch.utils.data import Dataset
 
 from ..utils import standard_image_transform, standard_mask_transform
 
-# URL =
-# 'ftp://guest:GU.205dldo@ftp.softronics.ch/mvtec_anomaly_detection/mvtec_anomaly_detection.tar.xz'
-CLASS_NAMES = [
+class MVTecDataset(Dataset):
+    CLASS_NAMES = [
     "bottle",
     "cable",
     "capsule",
@@ -23,11 +22,9 @@ CLASS_NAMES = [
     "toothbrush",
     "transistor",
     "wood",
-    "zipper",
-]
+    "zipper"
+    ]
 
-
-class MVTecDataset(Dataset):
     def __init__(
         self,
         dataset_path,
@@ -36,8 +33,10 @@ class MVTecDataset(Dataset):
         image_transforms=standard_image_transform,
         mask_transforms=standard_mask_transform,
     ):
-        assert class_name in CLASS_NAMES, "class_name: {}, should be in {}".format(
-            class_name, CLASS_NAMES
+
+
+        assert class_name in MVTecDataset.CLASS_NAMES, "class_name: {}, should be in {}".format(
+            class_name, MVTecDataset.CLASS_NAMES
         )
         self.dataset_path = dataset_path
         self.class_name = class_name
@@ -107,3 +106,6 @@ class MVTecDataset(Dataset):
         assert len(x) == len(y), "number of x and y should be same"
 
         return list(x), list(y), list(mask)
+
+if __name__ == "__main__":
+    a = MVTecDataset()
