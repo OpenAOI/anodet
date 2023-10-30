@@ -2,6 +2,7 @@
 Provides utility functions for anomaly detection.
 """
 
+
 import os
 from typing import Callable, List, Optional, Union
 
@@ -9,13 +10,17 @@ import numpy as np
 import torch
 from PIL import Image
 from torchvision import transforms as T
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 
+# Used in AnodetDataset class
 standard_image_transform = T.Compose(
     [
         T.Resize(224),
         T.CenterCrop(224),
         T.ToTensor(),
-        T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        T.Normalize(mean=[1.485, 1.456, 1.406], std=[1.229, 1.224, 1.225]),
+        #TODO Why are we normalizing with these values?
     ]
 )
 
@@ -123,6 +128,17 @@ def mahalanobis(
     sqrt = torch.sqrt(mult2)
     mahalanobis_distance = sqrt.reshape(batch_size)
 
+    # Visualize the 'diff' tensor
+    # This can help in understanding the differences between the mean and batch vectors, providing insights into the direction and magnitude of deviation.
+    # TODO Make function for this viz
+    plt.figure()
+    plt.plot(diff.detach().numpy())
+    plt.title('Differences between Mean and Batch Vectors')
+    plt.xlabel('Vector Components')
+    plt.ylabel('Difference Magnitude')
+    plt.show()
+
+
     # If a set of sets of distances is to be computed, reshape output
     if batch_size > mini_batch_size:
         mahalanobis_distance = mahalanobis_distance.reshape(ratio, mini_batch_size)
@@ -212,3 +228,86 @@ def split_tensor_and_run_function(
     output_tensor = torch.cat(tensors_list)
 
     return output_tensor
+
+
+if __name__ == "__main__":
+
+    mean = torch.tensor([1,2,3])
+    cov_inv = torch.tensor([[1,0,0], [0,1,0], [0,0,1]])
+    batch = torch.tensor([[2,3,4], [1,6,7]])
+    expected_results = torch.tensor([1.722, 5.1962])
+    
+    result = mahalanobis(mean, cov_inv, batch)
+    print(result)
+
+    # Generate synthetic data for testing
+    num_samples = 100
+    num_features = 10
+
+    mean = torch.rand(num_features)
+    cov = torch.rand(num_features, num_features)
+    cov_inv = torch.inverse(cov)
+
+    batch = torch.rand(num_samples, num_features)
+
+    # Test the mahalanobis function with the generated data
+    result = mahalanobis(mean, cov_inv, batch)
+
+    # Print the result or perform additional tests
+    print(result)
+
+    fig = plt.figure(figsize=(8, 6))
+    ax = fig.add_subplot(111, projection='3d')
+    sample_indices = range(len(result))
+    ax.scatter(sample_indices, result[:, 0], np.zeros_like(sample_indices), c='b', marker='o')
+    ax.set_xlabel('Sample Index')
+    ax.set_ylabel('Mahalanobis Distance')
+    ax.set_zlabel('Zero')
+    ax.set_title('Mahalanobis Distances for Samples')
+    plt.show()
+
+
+    ## ----- # 
+
+    #  Two clusters
+    
+    # Parameters for the two clusters
+    num_samples_cluster1 = 100
+    num_samples_cluster2 = 100
+    num_features = 3
+
+    # Generate data points for the two clusters
+    mean_cluster1 = torch.tensor([2, 2, 2])
+    cov_cluster1 = torch.tensor([[1, 0.5, 0.3], [0.5, 1, 0.2], [0.3, 0.2, 1]])
+    cluster1_data = np.random.multivariate_normal(mean_cluster1, cov_cluster1, num_samples_cluster1)
+
+    mean_cluster2 = torch.tensor([-2, -2, -2])
+    cov_cluster2 = torch.tensor([[1, -0.5, 0.3], [-0.5, 1, 0.2], [0.3, 0.2, 1]])
+    cluster2_data = np.random.multivariate_normal(mean_cluster2, cov_cluster2, num_samples_cluster2)
+
+    # Concatenate the data points from the two clusters
+    batch = np.concatenate((cluster1_data, cluster2_data), axis=0)
+
+    # Calculate Mahalanobis distance for the combined data
+    mean = torch.tensor([0, 0, 0])  # Choose a mean for the function
+    cov_inv = torch.inverse(torch.eye(num_features))  # Choose an inverse covariance for the function
+
+    distances = mahalanobis(mean, cov_inv, torch.tensor(batch))
+
+    # Plot the clusters and Mahalanobis distances on a 3D axis
+    fig = plt.figure(figsize=(10, 8))
+    ax = fig.add_subplot(111, projection='3d')
+    ax.scatter(cluster1_data[:, 0], cluster1_data[:, 1], cluster1_data[:, 2], c='b', marker='o', label='Cluster 1')
+    ax.scatter(cluster2_data[:, 0], cluster2_data[:, 1], cluster2_data[:, 2], c='r', marker='^', label='Cluster 2')
+    ax.set_xlabel('X Axis')
+    ax.set_ylabel('Y Axis')
+    ax.set_zlabel('Z Axis')
+    ax.set_title('Two Separate Clusters on 3D Axis')
+
+    # Visualize Mahalanobis distances as text annotations
+    distances_np = distances.detach().numpy()  # Convert to a NumPy array
+    for i in range(len(batch)):
+        ax.text(batch[i][0], batch[i][1], batch[i][2], f'{distances_np[i][0]:.2f}', color='black')
+
+    ax.legend()
+    plt.show()
