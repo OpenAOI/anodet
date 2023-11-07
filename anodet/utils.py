@@ -48,13 +48,15 @@ def to_batch(
 
 
 # From: https://github.com/pytorch/pytorch/issues/19037
-def pytorch_cov(
-    tensor: torch.Tensor, rowvar: bool = True, bias: bool = False
-) -> torch.Tensor:
+def pytorch_cov(tensor: torch.Tensor, rowvar: bool = True, bias: bool = False) -> torch.Tensor:
     """Estimate a covariance matrix (np.cov)."""
     tensor = tensor if rowvar else tensor.transpose(-1, -2)
     tensor = tensor - tensor.mean(dim=-1, keepdim=True)
-    factor = 1 / (tensor.shape[-1] - int(not bool(bias)))
+    denominator = tensor.shape[-1] - int(not bool(bias))
+    if denominator == 0:
+        raise ValueError("Denominator is zero. Cannot perform division.")
+
+    factor = 1 / denominator
     return factor * tensor @ tensor.transpose(-1, -2).conj()
 
 
