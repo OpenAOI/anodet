@@ -12,8 +12,8 @@ import torch.nn.functional as F
 from torchvision import transforms as T
 from tqdm import tqdm
 
-from .feature_extraction import ResnetEmbeddingsExtractor
-from .utils import mahalanobis, pytorch_cov, split_tensor_and_run_function
+from feature_extraction import ResnetEmbeddingsExtractor
+from utils import mahalanobis, pytorch_cov, split_tensor_and_run_function
 
 
 class Padim:
@@ -100,7 +100,7 @@ class Padim:
 
         Args:
             dataloader: A pytorch dataloader, with sample dimensions (B, D, H, W), \
-                containing normal images.
+                containing normal images. (Batch size, depth (channel), height, width)
             extractions: Number of extractions from dataloader. Could be of interest \
                 when applying random augmentations.
 
