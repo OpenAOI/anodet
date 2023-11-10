@@ -49,6 +49,7 @@ class ResnetEmbeddingsExtractor(torch.nn.Module):
         """
         self.backbone.to(device)
 
+    @torch.no_grad() # Cannot backpropagate but improves performance
     def forward(self,
                 batch: torch.Tensor,
                 channel_indices: Optional[torch.Tensor] = None,
@@ -71,34 +72,48 @@ class ResnetEmbeddingsExtractor(torch.nn.Module):
 
         """
 
-        with torch.no_grad():
+        # Initial convolutional layer
+        batch = self.backbone.conv1(batch)  
 
-            batch = self.backbone.conv1(batch)
-            batch = self.backbone.bn1(batch)
-            batch = self.backbone.relu(batch)
-            batch = self.backbone.maxpool(batch)
-            layer1 = self.backbone.layer1(batch)
-            layer2 = self.backbone.layer2(layer1)
-            layer3 = self.backbone.layer3(layer2)
-            layer4 = self.backbone.layer4(layer3)
-            layers = [layer1, layer2, layer3, layer4]
+        # Batch normalization (BatchNorm2d)
+        batch = self.backbone.bn1(batch)  
 
-            if layer_indices is not None:
-                layers = [layers[i] for i in layer_indices]
+        # Rectified Linear Unit (ReLU) activation function
+        batch = self.backbone.relu(batch)  
 
-            if layer_hook is not None:
-                layers = [layer_hook(layer) for layer in layers]
+        # Downsampling to reduce spatial dimensions and retain important features
+        batch = self.backbone.maxpool(batch)  
 
-            embedding_vectors = concatenate_layers(layers)
+        # Capture low-level features and spatial patterns
+        layer1 = self.backbone.layer1(batch)  
 
-            if channel_indices is not None:
-                embedding_vectors = torch.index_select(embedding_vectors, 1, channel_indices)
+        # Build upon layer1, capturing more complex features
+        layer2 = self.backbone.layer2(layer1)  
 
-            batch_size, length, width, height = embedding_vectors.shape
-            embedding_vectors = embedding_vectors.reshape(batch_size, length, width*height)
-            embedding_vectors = embedding_vectors.permute(0, 2, 1)
+        # Capture higher-level features and more abstract representations
+        layer3 = self.backbone.layer3(layer2)  
 
-            return embedding_vectors
+        # Refine features, preparing for final classification
+        layer4 = self.backbone.layer4(layer3)
+
+        layers = [layer1, layer2, layer3, layer4]  
+
+        if layer_indices is not None:
+            layers = [layers[i] for i in layer_indices]
+
+        if layer_hook is not None:
+            layers = [layer_hook(layer) for layer in layers]
+
+        embedding_vectors = concatenate_layers(layers)
+
+        if channel_indices is not None:
+            embedding_vectors = torch.index_select(embedding_vectors, 1, channel_indices)
+
+        batch_size, length, width, height = embedding_vectors.shape
+        embedding_vectors = embedding_vectors.reshape(batch_size, length, width*height)
+        embedding_vectors = embedding_vectors.permute(0, 2, 1)
+
+        return embedding_vectors
 
     def from_dataloader(self,
                         dataloader: DataLoader,
