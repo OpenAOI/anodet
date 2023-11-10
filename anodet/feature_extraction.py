@@ -3,6 +3,7 @@ Provides classes and functions for extracting embedding vectors from neural netw
 """
 
 import torch
+import torchinfo
 import torch.nn.functional as F
 from torchvision.models import resnet18, ResNet18_Weights, wide_resnet50_2, Wide_ResNet50_2_Weights
 from tqdm import tqdm
@@ -123,6 +124,13 @@ class ResnetEmbeddingsExtractor(torch.nn.Module):
 
         return cast(torch.Tensor, embedding_vectors)
 
+    def get_summary(self, input_size = (1, 3, 224, 224)):
+        """Get a summary of the backbone model structure."""
+        
+        # input_size with standard_image_transform
+        return torchinfo.summary(self.backbone, input_size)
+
+
 
 def concatenate_layers(layers: List[torch.Tensor]) -> torch.Tensor:
     """Scale all tensors to the heigth and width of the first tensor and concatenate them."""
@@ -152,3 +160,13 @@ def concatenate_two_layers(layer1: torch.Tensor, layer2: torch.Tensor) -> torch.
     result = F.fold(result, kernel_size=height_ratio,
                     output_size=(height1, width1), stride=height_ratio)
     return result
+
+if __name__ == "__main__":
+    nn_resnet_18 = ResnetEmbeddingsExtractor(backbone_name="resnet18", device='cpu')
+    nn_resnet_18.get_summary()
+
+
+    nn_resnet_50 = ResnetEmbeddingsExtractor(backbone_name="wide_resnet50", device='cpu')
+    nn_resnet_50.get_summary()
+
+

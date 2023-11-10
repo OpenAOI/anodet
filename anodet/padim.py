@@ -192,3 +192,7 @@ def get_indices(choose, total, device):
         torch.cuda.manual_seed_all(1024)
 
     return torch.tensor(random.sample(range(0, total), choose), device=device)
+
+if __name__ == "__main__":
+    padim = Padim(backbone="wide_resnet50")
+    padim.embeddings_extractor.get_summary()
