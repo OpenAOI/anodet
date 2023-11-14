@@ -6,13 +6,16 @@ import torch
 from torch.utils.data import DataLoader
 import matplotlib.pyplot as plt
 
+import sys
+sys.path.append('/Users/helvetica/_master_anodet/anodet')
+
 import anodet
 
-dataset_path = os.path.realpath("data_warehouse/dataset")
-distributions_path = os.path.realpath("demo/distributions/")
+dataset_path = os.path.realpath("/Users/helvetica/_master_anodet/anodet/data_warehouse/dataset/")
+distributions_path = os.path.realpath("/Users/helvetica/_master_anodet/anodet/data_warehouse/dataset/")
 
 model = anodet.Padim(backbone="resnet18")
-object_name = ["leather_case", "snusdosa"]
+object_name = ["purple_duck"]
 cam_names = ["cam_0_left", "cam_1_right"]
 
 
@@ -54,10 +57,10 @@ def predict(
     )
 
     mean = torch.load(
-        os.path.join(distributions_path, f"{object_name}_{cam_names}_mean.pt")
+        os.path.join(distributions_path, f"{object_name}/{object_name}_{cam_names}_mean.pt")
     )
     cov_inv = torch.load(
-        os.path.join(distributions_path, f"{object_name}_{cam_names}_cov_inv.pt")
+        os.path.join(distributions_path, f"{object_name}/{object_name}_{cam_names}_cov_inv.pt")
     )
 
     padim = anodet.Padim(
@@ -68,13 +71,51 @@ def predict(
     score_map_classifications = anodet.classification(score_maps, THRESH)
     image_classifications = anodet.classification(image_scores, THRESH)
 
+    test_images = np.array(images).copy()
+
+    boundary_images = anodet.visualization.framed_boundary_images(test_images, score_map_classifications, image_classifications, padding=40)
+    heatmap_images = anodet.visualization.heatmap_images(test_images, score_maps, alpha=0.5)
+    highlighted_images = anodet.visualization.highlighted_images(images, score_map_classifications, color=(128, 0, 128))
+
+    
+    for idx in range(len(images)):
+        fig, axs = plt.subplots(1, 4, figsize=(12, 6))
+        fig.suptitle('Image: ' + str(idx), y=0.75, fontsize=14)
+        axs[0].imshow(images[idx])
+        axs[1].imshow(boundary_images[idx])
+        axs[2].imshow(heatmap_images[idx])
+        axs[3].imshow(highlighted_images[idx])
+        plt.show()
+
+    heatmap_images = anodet.visualization.heatmap_images(test_images, score_maps, alpha=0.5)
+    tot_img = anodet.visualization.merge_images(heatmap_images, margin=40)
+    fig, axs = plt.subplots(1, 1, figsize=(10, 6))
+    plt.imshow(tot_img)
+    plt.show()
 
     return image_classifications, image_scores, score_maps
 
+def visualization(distributions_path, test_image):
+
+    # Test image
+    image = cv2.imread(test_image)
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    
+    # Load model
+    mean = torch.load(distributions_path)      #TODO correct path implementatio
+    cov_inv = torch.load(distributions_path)
+
+    padim = anodet.Padim(backbone='resnet18', mean=mean, cov_inv=cov_inv, device=troch.device('cpu'))
+
+    image_scores, score_maps = padim.predict(batch)
+
+
+
+    return("adf")
 
 if __name__ == "__main__":
     for cam_name in cam_names:
-        #  We won't train during demo.
+        # #  We won't train during demo.
         # dataloader = get_dataloader(dataset_path, cam_name, object_name[0])
         # model_fit(model, dataloader, distributions_path, cam_name, object_name[0])
 
@@ -86,18 +127,18 @@ if __name__ == "__main__":
             os.path.join(
                 dataset_path, f"{object_name[0]}/test/{anomaly[0]}/{cam_name}/000.png"
             ),
-            os.path.join(
-                dataset_path, f"{object_name[0]}/test/{anomaly[0]}/{cam_name}/001.png"
-            ),
-            os.path.join(
-                dataset_path, f"{object_name[0]}/test/{anomaly[0]}/{cam_name}/002.png"
-            ),
-            os.path.join(
-                dataset_path, f"{object_name[0]}/test/good/{cam_name}/000.png"
-            ),
-            os.path.join(
-                dataset_path, f"{object_name[0]}/test/good/{cam_name}/001.png"
-            ),
+            # os.path.join(
+            #     dataset_path, f"{object_name[0]}/test/{anomaly[0]}/{cam_name}/001.png"
+            # ),
+            # os.path.join(
+            #     dataset_path, f"{object_name[0]}/test/{anomaly[0]}/{cam_name}/002.png"
+            # ),
+            # os.path.join(
+            #     dataset_path, f"{object_name[0]}/test/good/{cam_name}/000.png"
+            # ),
+            # os.path.join(
+            #     dataset_path, f"{object_name[0]}/test/good/{cam_name}/001.png"
+            # ),
         ]
 
         #  For this we might wanna use mccp here ⬆

@@ -133,12 +133,12 @@ def mahalanobis(
     # Visualize the 'diff' tensor
     # This can help in understanding the differences between the mean and batch vectors, providing insights into the direction and magnitude of deviation.
     # TODO Make function for this viz
-    plt.figure()
-    plt.plot(diff.detach().numpy())
-    plt.title('Differences between Mean and Batch Vectors')
-    plt.xlabel('Vector Components')
-    plt.ylabel('Difference Magnitude')
-    plt.show()
+    # plt.figure()
+    # plt.plot(diff.detach().numpy())
+    # plt.title('Differences between Mean and Batch Vectors')
+    # plt.xlabel('Vector Components')
+    # plt.ylabel('Difference Magnitude')
+    # plt.show()
 
 
     # If a set of sets of distances is to be computed, reshape output
