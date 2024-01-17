@@ -39,6 +39,7 @@ class ResnetEmbeddingsExtractor(torch.nn.Module):
         self.backbone.to(device)
         self.backbone.eval()
         self.eval()
+        self.device = device
 
     def to_device(self, device: torch.device) -> None:
         """Perform device conversion on backone
@@ -110,7 +111,7 @@ class ResnetEmbeddingsExtractor(torch.nn.Module):
         embedding_vectors: Optional[torch.Tensor] = None
 
         for (batch, _, _) in tqdm(dataloader, 'Feature extraction'):
-
+            batch = batch.to(self.device)
             batch_embedding_vectors = self(batch,
                                            channel_indices=channel_indices,
                                            layer_hook=layer_hook,
