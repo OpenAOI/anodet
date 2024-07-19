@@ -52,6 +52,8 @@ class Padim:
                 self.channel_indices = get_indices(100, 448, self.device)
             elif backbone == 'wide_resnet50':
                 self.channel_indices = get_indices(550, 1792, self.device)
+            elif backbone == 'resnet34':
+                self.channel_indices = get_indices(100, 448, self.device)
 
         self.layer_indices = layer_indices
         if self.layer_indices is None:
